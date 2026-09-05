@@ -21,13 +21,22 @@ app.use(securityHeaders());
 
 // 2. CORS Configuration
 const isProd = process.env.NODE_ENV === "production";
-const allowedOrigins = isProd
-  ? [process.env.FRONTEND_URL].filter(Boolean) as string[]
-  : [process.env.FRONTEND_URL, "http://localhost:5173", "http://localhost:5000"].filter(Boolean) as string[];
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Allow requests with no origin, localhost, any Vercel domain, or the explicit FRONTEND_URL
+      if (
+        !origin || 
+        origin.includes("localhost") || 
+        origin.endsWith(".vercel.app") || 
+        origin === process.env.FRONTEND_URL
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
   })
