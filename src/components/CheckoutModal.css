@@ -1,0 +1,362 @@
+.checkout-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 99999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: overlayFadeIn 0.35s ease forwards;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.checkout-modal {
+  width: 660px;
+  height: 720px;
+  background: #191919;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  animation: modalFadeUp 0.4s ease forwards;
+  box-sizing: border-box;
+}
+
+@keyframes modalFadeUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(15px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* Modal Scrollbar */
+.checkout-modal::-webkit-scrollbar {
+  width: 5px;
+}
+.checkout-modal::-webkit-scrollbar-track {
+  background: #191919;
+}
+.checkout-modal::-webkit-scrollbar-thumb {
+  background: #a0a0a0;
+  border-radius: 3px;
+  min-height: 170px;
+}
+.checkout-modal::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+.checkout-content {
+  padding: 43px;
+  padding-bottom: 60px;
+}
+
+.checkout-title {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 300;
+  color: #fcfcfc;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.checkout-subtitle {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #999999;
+  font-weight: 400;
+  margin: 8px 0 0 0;
+}
+
+.checkout-form {
+  margin-top: 45px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-field label {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 3px;
+  font-weight: 600;
+  color: #b0b0b0;
+}
+
+.form-field input,
+.form-field textarea {
+  width: 100%;
+  background: #101010;
+  border: 1px solid #292929;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 18px;
+  border-radius: 0;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+  border-color: #555555;
+}
+
+.form-field input {
+  height: 50px;
+}
+
+.form-field textarea {
+  height: 87px;
+  resize: vertical;
+}
+
+.order-summary {
+  margin-top: 27px;
+  width: 100%;
+  background: #101010;
+  border: 1px solid #292929;
+  padding: 22px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: #a0a0a0;
+  font-weight: 400;
+}
+
+.summary-right {
+  color: #b0b0b0;
+}
+
+.summary-divider {
+  width: 100%;
+  height: 1px;
+  background: #292929;
+  margin: 2px 0;
+}
+
+.total-row {
+  padding-top: 18px;
+  align-items: center;
+}
+
+.summary-total-label {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: #ffffff;
+}
+
+.summary-total-value {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.checkout-buttons {
+  margin-top: 32px;
+  display: flex;
+  gap: 14px;
+  height: 64px;
+}
+
+.btn-confirm {
+  width: 280px;
+  background: #e9e9e9;
+  color: #000000;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 2.5px;
+  font-weight: 700;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.5;
+  transition: background-color 0.2s ease;
+  padding: 0;
+}
+
+.btn-confirm:hover {
+  background: #ffffff;
+}
+
+.btn-cancel {
+  width: 185px;
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid #404040;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 2.5px;
+  font-weight: 700;
+  border-radius: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: #666666;
+}
+
+/* Responsive Behavior */
+@media (max-width: 1024px) {
+  .checkout-modal {
+    width: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .checkout-modal {
+    width: 92%;
+    height: 85vh;
+  }
+  .checkout-content {
+    padding: 30px 24px;
+  }
+  .checkout-buttons {
+    flex-direction: column;
+    height: auto;
+  }
+  .btn-confirm, .btn-cancel {
+    width: 100%;
+    height: 60px;
+  }
+}
+
+/* ── Success State ── */
+.checkout-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 60px;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  border: 2px solid #e9e9e9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #e9e9e9;
+  margin-bottom: 32px;
+  font-family: var(--font-sans);
+}
+
+.success-details {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.success-order-id {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: #b0b0b0;
+  letter-spacing: 1px;
+}
+
+.success-order-id strong {
+  color: #ffffff;
+  letter-spacing: 2px;
+}
+
+.success-message {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: #777777;
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+/* ── Error Banner ── */
+.checkout-error {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: rgba(200, 60, 60, 0.12);
+  border: 1px solid rgba(200, 60, 60, 0.25);
+  color: #e0a0a0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── Disabled States ── */
+.btn-confirm:disabled {
+  background: #666666;
+  color: #999999;
+  cursor: not-allowed;
+}
+
+.btn-confirm:disabled:hover {
+  background: #666666;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.form-field input:disabled,
+.form-field textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .checkout-overlay {
+    animation: none;
+  }
+  .checkout-modal {
+    animation: none;
+  }
+}
