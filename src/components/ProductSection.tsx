@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useCart } from "../context/CartContext";
 import product from "../data/products";
 
@@ -15,10 +15,45 @@ const TRUST = [
   "Easy Returns",
 ];
 
+const productImages = [
+  "/images/sayf.prd.jpeg",
+  "/images/sayf.prd2.png"
+];
+
 const ProductSection: React.FC = () => {
   const { addToCart, openCart } = useCart();
   const [selectedQtyIdx, setSelectedQtyIdx] = useState(0);
+  const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const selected = product.quantityOptions[selectedQtyIdx];
+
+  const nextImage = useCallback(() => setCurrentImageIdx((prev) => (prev + 1) % productImages.length), []);
+  const prevImage = useCallback(() => setCurrentImageIdx((prev) => (prev - 1 + productImages.length) % productImages.length), []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      nextImage();
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [nextImage, currentImageIdx]);
+
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+
+    if (diff > 50) {
+      nextImage(); // Swipe left -> next image
+    } else if (diff < -50) {
+      prevImage(); // Swipe right -> previous image
+    }
+    setTouchStartX(null);
+  };
 
   const handleAddToCart = () => {
     addToCart(selected.qty);
@@ -34,16 +69,58 @@ const ProductSection: React.FC = () => {
       <div className="container-lg product-inner">
         <div className="row gy-5 gx-lg-5 align-items-center">
           {/* Product Image */}
-          <div className="col-12 col-lg-6 product-image-wrap reveal">
-            <img
-              src="/images/sayf.prd.jpeg"
-              alt="SAYF Premium Beard Oil"
-              className="product-image img-fluid d-block mx-auto"
-              style={{ borderRadius: "8px", objectFit: "cover" }}
-              width="500"
-              height="500"
-              loading="lazy"
-            />
+          <div className="col-12 col-lg-6 product-image-wrap reveal text-center">
+            <div 
+              className="position-relative d-inline-block" 
+
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              {productImages.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={img}
+                  alt={`SAYF Premium Beard Oil - Image ${idx + 1}`}
+                  className="product-image img-fluid d-block mx-auto"
+                  style={{ 
+                    borderRadius: "8px", 
+                    objectFit: "cover",
+                    position: idx === 0 ? "relative" : "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    opacity: currentImageIdx === idx ? 1 : 0,
+                    transition: "opacity 0.8s ease-in-out",
+                    zIndex: currentImageIdx === idx ? 1 : 0
+                  }}
+                  width="500"
+                  height="500"
+                  loading={idx === 0 ? "eager" : "lazy"}
+                />
+              ))}
+
+              {/* Navigation arrows removed as requested */}
+              
+              {/* Indicators */}
+              <div className="position-absolute bottom-0 start-50 translate-middle-x mb-4 d-flex gap-2" style={{ zIndex: 2 }}>
+                {productImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIdx(idx)}
+                    className="border-0 p-0 bg-light"
+                    style={{ 
+                      width: '24px', 
+                      height: '3px', 
+                      borderRadius: '2px', 
+                      opacity: currentImageIdx === idx ? 1 : 0.3, 
+                      transition: 'opacity 0.3s ease-in-out' 
+                    }}
+                    aria-label={`Go to image ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Product Info */}
