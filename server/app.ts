@@ -12,6 +12,9 @@ dotenv.config();
 const app = express();
 app.disable("x-powered-by");
 
+// Trust Vercel's proxy so rate limiters use the real client IP instead of Vercel's internal IP
+app.set("trust proxy", 1);
+
 // 1. Security Headers Middleware
 app.use(securityHeaders());
 
