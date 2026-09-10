@@ -8,7 +8,7 @@ interface CheckoutModalProps {
   onClose: () => void;
 }
 
-type ModalState = "form" | "submitting" | "success" | "error";
+type ModalState = "form" | "submitting" | "error";
 
 const generateIdempotencyKey = (): string => {
   if (typeof window !== "undefined" && window.crypto) {
@@ -32,9 +32,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
   const [address, setAddress] = useState("");
   const [modalState, setModalState] = useState<ModalState>("form");
   const [errorMessage, setErrorMessage] = useState("");
-  const [successOrderId, setSuccessOrderId] = useState("");
-  const [whatsappUrl, setWhatsappUrl] = useState("");
-  const [isPopupBlocked, setIsPopupBlocked] = useState(false);
 
   const { items, subtotal, clearCart } = useCart();
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -67,9 +64,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     if (isOpen) {
       setModalState("form");
       setErrorMessage("");
-      setSuccessOrderId("");
-      setWhatsappUrl("");
-      setIsPopupBlocked(false);
       idempotencyKeyRef.current = generateIdempotencyKey();
     }
   }, [isOpen]);
@@ -158,19 +152,23 @@ Address: ${trimmedAddress}`;
 
       const encodedMessage = encodeURIComponent(message);
       const url = `https://wa.me/${MANAGER_WHATSAPP_NUMBER}?text=${encodedMessage}`;
-      setWhatsappUrl(url);
 
-      // Directly redirect the current tab to WhatsApp to avoid popup blockers
-      window.location.href = url;
-      setIsPopupBlocked(false);
-
-      // Success — clear cart ONLY after confirmed backend success
-      setSuccessOrderId(response.order.orderId);
-      setModalState("success");
+      // 1. Success — clear cart ONLY after confirmed backend success
       clearCart();
       setName("");
       setPhone("");
       setAddress("");
+      onClose(); // Navigate back to the shop/product page smoothly
+
+      // 2. Open WhatsApp in a way that doesn't interrupt the current app flow
+      // We use setTimeout to ensure React unmounts the modal and saves the state before the browser handles the navigation
+      setTimeout(() => {
+        const opened = window.open(url, "_blank", "noopener,noreferrer");
+        if (!opened) {
+          // Fallback if popup is blocked
+          window.location.href = url;
+        }
+      }, 50);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -197,60 +195,14 @@ Address: ${trimmedAddress}`;
       role="presentation"
     >
       <div
-        className={`checkout-modal ${modalState === "success" ? "success-theme" : ""}`}
+        className="checkout-modal"
         data-lenis-prevent
         role="dialog"
         aria-modal="true"
         aria-label="Checkout"
       >
         <div className="checkout-content">
-          {/* ── SUCCESS STATE ── */}
-          {modalState === "success" ? (
-            <div className="checkout-success-full">
-              <button className="success-back-btn" onClick={onClose} aria-label="Go back">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-              </button>
-
-              <div className="success-content-wrapper">
-                <div className="success-icon-anim">
-                  <svg viewBox="0 0 52 52">
-                    <circle cx="26" cy="26" r="25" fill="#00A000" />
-                    <path className="success-check" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-                  </svg>
-                </div>
-
-                <h2 className="success-heading">ORDER CONFIRMED</h2>
-                <p className="success-subheading">Thank you for your order</p>
-
-                {successOrderId && (
-                  <div className="success-order-id-subtle">
-                    Order ID<br />
-                    #{successOrderId}
-                  </div>
-                )}
-              </div>
-
-              <div className="success-actions">
-                {isPopupBlocked && (
-                  <button
-                    type="button"
-                    className="btn-success-whatsapp"
-                    onClick={() => window.open(whatsappUrl, "_blank", "noopener,noreferrer")}
-                  >
-                    SEND ORDER TO WHATSAPP
-                  </button>
-                )}
-                <button
-                  className="btn-success-continue"
-                  onClick={onClose}
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <h2 className="checkout-title">Complete Order</h2>
+          <h2 className="checkout-title">Complete Order</h2>
               <p className="checkout-subtitle">SAYF PREMIUM BEARD OIL</p>
 
               {/* ── ERROR BANNER ── */}
@@ -350,8 +302,6 @@ Address: ${trimmedAddress}`;
                   </button>
                 </div>
               </form>
-            </>
-          )}
         </div>
       </div>
     </div>
