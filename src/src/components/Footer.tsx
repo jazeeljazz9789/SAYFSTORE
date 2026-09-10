@@ -6,7 +6,14 @@ interface FooterProps { }
 const Footer: React.FC<FooterProps> = () => {
   const scrollTo = (id: string | null) => {
     if (!id) return;
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    const el = document.getElementById(id);
+    if (el) {
+      if ((window as any).lenis) {
+        (window as any).lenis.scrollTo(el);
+      } else {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   };
 
   return (

@@ -8,7 +8,7 @@ interface CheckoutModalProps {
   onClose: () => void;
 }
 
-type ModalState = "form" | "submitting" | "success" | "error";
+type ModalState = "form" | "submitting" | "error";
 
 const generateIdempotencyKey = (): string => {
   if (typeof window !== "undefined" && window.crypto) {
@@ -32,9 +32,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
   const [address, setAddress] = useState("");
   const [modalState, setModalState] = useState<ModalState>("form");
   const [errorMessage, setErrorMessage] = useState("");
-  const [successOrderId, setSuccessOrderId] = useState("");
-  const [whatsappUrl, setWhatsappUrl] = useState("");
-  const [isPopupBlocked, setIsPopupBlocked] = useState(false);
 
   const { items, subtotal, clearCart } = useCart();
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -67,9 +64,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     if (isOpen) {
       setModalState("form");
       setErrorMessage("");
-      setSuccessOrderId("");
-      setWhatsappUrl("");
-      setIsPopupBlocked(false);
       idempotencyKeyRef.current = generateIdempotencyKey();
     }
   }, [isOpen]);
@@ -158,19 +152,23 @@ Address: ${trimmedAddress}`;
 
       const encodedMessage = encodeURIComponent(message);
       const url = `https://wa.me/${MANAGER_WHATSAPP_NUMBER}?text=${encodedMessage}`;
-      setWhatsappUrl(url);
 
-      // Directly redirect the current tab to WhatsApp to avoid popup blockers
-      window.location.href = url;
-      setIsPopupBlocked(false);
-
-      // Success — clear cart ONLY after confirmed backend success
-      setSuccessOrderId(response.order.orderId);
-      setModalState("success");
+      // 1. Success — clear cart ONLY after confirmed backend success
       clearCart();
       setName("");
       setPhone("");
       setAddress("");
+      onClose(); // Navigate back to the shop/product page smoothly
+
+      // 2. Open WhatsApp in a way that doesn't interrupt the current app flow
+      // We use setTimeout to ensure React unmounts the modal and saves the state before the browser handles the navigation
+      setTimeout(() => {
+        const opened = window.open(url, "_blank", "noopener,noreferrer");
+        if (!opened) {
+          // Fallback if popup is blocked
+          window.location.href = url;
+        }
+      }, 50);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -204,45 +202,7 @@ Address: ${trimmedAddress}`;
         aria-label="Checkout"
       >
         <div className="checkout-content">
-          {/* ── SUCCESS STATE ── */}
-          {modalState === "success" ? (
-            <div className="checkout-success">
-              <div className="success-icon">✓</div>
-              <h2 className="checkout-title">Order Confirmed</h2>
-              <p className="checkout-subtitle">SAYF PREMIUM BEARD OIL</p>
-              <div className="success-details">
-                <p className="success-order-id">
-                  Order ID: <strong>{successOrderId}</strong>
-                </p>
-                <p className="success-message">
-                  {isPopupBlocked
-                    ? "Order confirmed. Click the button below to send the order details to WhatsApp."
-                    : "Your order has been placed successfully. We'll deliver it to your doorstep soon."}
-                </p>
-              </div>
-
-              {isPopupBlocked && (
-                <button
-                  type="button"
-                  className="btn-confirm"
-                  onClick={() => window.open(whatsappUrl, "_blank", "noopener,noreferrer")}
-                  style={{ width: "100%", marginTop: "32px" }}
-                >
-                  SEND ORDER TO WHATSAPP
-                </button>
-              )}
-
-              <button
-                className="btn-confirm"
-                onClick={onClose}
-                style={{ width: "100%", marginTop: isPopupBlocked ? "14px" : "32px" }}
-              >
-                CONTINUE SHOPPING
-              </button>
-            </div>
-          ) : (
-            <>
-              <h2 className="checkout-title">Complete Order</h2>
+          <h2 className="checkout-title">Complete Order</h2>
               <p className="checkout-subtitle">SAYF PREMIUM BEARD OIL</p>
 
               {/* ── ERROR BANNER ── */}
@@ -342,8 +302,6 @@ Address: ${trimmedAddress}`;
                   </button>
                 </div>
               </form>
-            </>
-          )}
         </div>
       </div>
     </div>

@@ -284,7 +284,7 @@ const ScrollStory: React.FC = () => {
       const diff = target - current;
 
       if (Math.abs(diff) > 0.01) {
-        currentFrameRef.current = current + diff * 0.2;
+        currentFrameRef.current = current + diff * 0.6;
       } else {
         currentFrameRef.current = target;
       }

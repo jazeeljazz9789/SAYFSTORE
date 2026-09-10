@@ -24,7 +24,13 @@ const Navbar: React.FC<NavbarProps> = () => {
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (el) {
+      if ((window as any).lenis) {
+        (window as any).lenis.scrollTo(el);
+      } else {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    }
     setMenuOpen(false);
   };
 
@@ -33,7 +39,14 @@ const Navbar: React.FC<NavbarProps> = () => {
       {/* Logo */}
       <div className="navbar-logo flex-shrink-0">
         <button
-          onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); setMenuOpen(false); }}
+          onClick={() => { 
+            if ((window as any).lenis) {
+              (window as any).lenis.scrollTo(0);
+            } else {
+              window.scrollTo({ top: 0, behavior: "smooth" }); 
+            }
+            setMenuOpen(false); 
+          }}
           style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
           aria-label="Go to top"
         >
