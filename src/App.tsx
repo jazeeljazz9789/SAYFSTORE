@@ -37,12 +37,15 @@ const AppContent: React.FC = () => {
     if (prefersReducedMotion) return;
 
     const lenis = new Lenis({
-      duration: 1.1,
+      duration: 0.8, // Snappier response
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      touchMultiplier: 1.5,
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      // Let smoothTouch default to false so mobile uses native scrolling, preventing the 'floating/laggy' feel
     });
 
     lenisRef.current = lenis;
+    (window as any).lenis = lenis; // Expose globally for navigation components
 
     let rafId: number;
 
@@ -56,6 +59,7 @@ const AppContent: React.FC = () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
       lenisRef.current = null;
+      (window as any).lenis = undefined;
     };
   }, [loading]);
 

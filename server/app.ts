@@ -108,7 +108,6 @@ app.use("/api/contact", contactLimiter, contactRouter);
 app.get("/api/health", (_req: Request, res: Response) => {
   return res.status(200).json({
     status: "ok",
-    message: "Stateless mode",
   });
 });
 
