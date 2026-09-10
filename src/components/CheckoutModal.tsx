@@ -139,40 +139,30 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
 
       // Construct WhatsApp URL before clearing cart and form
       const MANAGER_WHATSAPP_NUMBER = "919944282594";
-      const productDetails = items.map(item => `Product: ${item.name}\nQuantity: ${item.qty} ${item.qty > 1 ? 'Bottles' : 'Bottle'}`).join("\n\n");
       const formattedPhone = trimmedPhone.startsWith("+") ? trimmedPhone : `+91${trimmedPhone.replace(/^0+/, "")}`;
       
-      const message = `🧔 SAYF STORE — NEW ORDER
+      const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
+      const quantityText = totalQty === 1 ? "1 bottle" : `${totalQty} bottles`;
+      const productName = items.length > 0 ? items[0].name : "SAYF Premium Beard Oil";
+      const formattedTotal = response.order.totalAmount.toLocaleString("en-IN");
 
-🛍️ PRODUCT DETAILS
-${productDetails}
-Total: ₹${response.order.totalAmount.toLocaleString("en-IN")}
+      const message = `Thank you for choosing SAYF
 
-👤 CUSTOMER DETAILS
+Hi SAYF Store, I want to buy ${quantityText} of ${productName} for ₹${formattedTotal}. Please process my order.
+
+🧾 CUSTOMER DETAILS:
 Order ID: ${response.order.orderId}
 Name: ${trimmedName}
 Phone: ${formattedPhone}
-Address: ${trimmedAddress}
-
-💳 PAYMENT
-Payment Method: Cash on Delivery
-
-Thank you for choosing SAYF.`;
+Address: ${trimmedAddress}`;
 
       const encodedMessage = encodeURIComponent(message);
       const url = `https://wa.me/${MANAGER_WHATSAPP_NUMBER}?text=${encodedMessage}`;
       setWhatsappUrl(url);
 
-      let popupBlocked = false;
-      try {
-        const newWindow = window.open(url, "_blank", "noopener,noreferrer");
-        if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
-          popupBlocked = true;
-        }
-      } catch {
-        popupBlocked = true;
-      }
-      setIsPopupBlocked(popupBlocked);
+      // Directly redirect the current tab to WhatsApp to avoid popup blockers
+      window.location.href = url;
+      setIsPopupBlocked(false);
 
       // Success — clear cart ONLY after confirmed backend success
       setSuccessOrderId(response.order.orderId);
@@ -207,7 +197,7 @@ Thank you for choosing SAYF.`;
       role="presentation"
     >
       <div
-        className="checkout-modal"
+        className={`checkout-modal ${modalState === "success" ? "success-theme" : ""}`}
         data-lenis-prevent
         role="dialog"
         aria-modal="true"
@@ -216,39 +206,47 @@ Thank you for choosing SAYF.`;
         <div className="checkout-content">
           {/* ── SUCCESS STATE ── */}
           {modalState === "success" ? (
-            <div className="checkout-success">
-              <div className="success-icon">✓</div>
-              <h2 className="checkout-title">Order Confirmed</h2>
-              <p className="checkout-subtitle">SAYF PREMIUM BEARD OIL</p>
-              <div className="success-details">
-                <p className="success-order-id">
-                  Order ID: <strong>{successOrderId}</strong>
-                </p>
-                <p className="success-message">
-                  {isPopupBlocked
-                    ? "Order confirmed. Click the button below to send the order details to WhatsApp."
-                    : "Your order has been placed successfully. We'll deliver it to your doorstep soon."}
-                </p>
+            <div className="checkout-success-full">
+              <button className="success-back-btn" onClick={onClose} aria-label="Go back">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              </button>
+
+              <div className="success-content-wrapper">
+                <div className="success-icon-anim">
+                  <svg viewBox="0 0 52 52">
+                    <circle cx="26" cy="26" r="25" fill="#00A000" />
+                    <path className="success-check" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                  </svg>
+                </div>
+
+                <h2 className="success-heading">ORDER CONFIRMED</h2>
+                <p className="success-subheading">Thank you for your order</p>
+
+                {successOrderId && (
+                  <div className="success-order-id-subtle">
+                    Order ID<br />
+                    #{successOrderId}
+                  </div>
+                )}
               </div>
 
-              {isPopupBlocked && (
+              <div className="success-actions">
+                {isPopupBlocked && (
+                  <button
+                    type="button"
+                    className="btn-success-whatsapp"
+                    onClick={() => window.open(whatsappUrl, "_blank", "noopener,noreferrer")}
+                  >
+                    SEND ORDER TO WHATSAPP
+                  </button>
+                )}
                 <button
-                  type="button"
-                  className="btn-confirm"
-                  onClick={() => window.open(whatsappUrl, "_blank", "noopener,noreferrer")}
-                  style={{ width: "100%", marginTop: "32px" }}
+                  className="btn-success-continue"
+                  onClick={onClose}
                 >
-                  SEND ORDER TO WHATSAPP
+                  Continue Shopping
                 </button>
-              )}
-
-              <button
-                className="btn-confirm"
-                onClick={onClose}
-                style={{ width: "100%", marginTop: isPopupBlocked ? "14px" : "32px" }}
-              >
-                CONTINUE SHOPPING
-              </button>
+              </div>
             </div>
           ) : (
             <>
