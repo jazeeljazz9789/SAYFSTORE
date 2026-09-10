@@ -19,6 +19,20 @@ const PORT = process.env.PORT || 5000;
 // 1. Security Headers Middleware
 app.use(securityHeaders());
 
+// Fix for Vercel Rewrites: Restore original URL from query path
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  if (req.url.startsWith('/server/index.ts')) {
+    try {
+      const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const pathParam = urlObj.searchParams.get('path') || '';
+      req.url = `/api/${pathParam}`;
+    } catch (e) {
+      // Ignore URL parse errors
+    }
+  }
+  next();
+});
+
 // 2. CORS Configuration
 const isProd = process.env.NODE_ENV === "production";
 
