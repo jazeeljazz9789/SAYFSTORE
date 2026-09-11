@@ -57,16 +57,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     };
   }, [isOpen]);
 
-  const idempotencyKeyRef = useRef("");
+  const [idempotencyKey, setIdempotencyKey] = useState("");
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  // Reset state when modal opens
-  useEffect(() => {
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setModalState("form");
       setErrorMessage("");
-      idempotencyKeyRef.current = generateIdempotencyKey();
+      setIdempotencyKey(generateIdempotencyKey());
     }
-  }, [isOpen]);
+  }
 
   // Escape key closes modal
   useEffect(() => {
@@ -129,7 +130,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
         address: trimmedAddress,
         paymentMethod: "cod",
         items: items.map((item) => ({ id: item.id, qty: item.qty })),
-      }, idempotencyKeyRef.current);
+      }, idempotencyKey);
 
       // Construct WhatsApp URL before clearing cart and form
       const MANAGER_WHATSAPP_NUMBER = "919944282594";

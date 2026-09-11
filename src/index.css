@@ -525,6 +525,7 @@ body {
   position: absolute;
   text-align: center;
   transition: opacity 0.5s ease;
+  will-change: transform, opacity;
 }
 
 .scroll-text-panel.left {
