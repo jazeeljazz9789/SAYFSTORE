@@ -2,10 +2,10 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
-import ordersRouter from "./routes/orders";
-import productsRouter from "./routes/products";
-import contactRouter from "./routes/contact";
-import { securityHeaders, sanitizeInput, createRateLimiter } from "./middleware/security";
+import ordersRouter from "./routes/orders.js";
+import productsRouter from "./routes/products.js";
+import contactRouter from "./routes/contact.js";
+import { securityHeaders, sanitizeInput, createRateLimiter } from "./middleware/security.js";
 
 dotenv.config();
 
