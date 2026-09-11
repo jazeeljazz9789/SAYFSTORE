@@ -70,7 +70,15 @@ const ScrollStory: React.FC = () => {
     isPortrait: false,
     canvasW: 0,
     canvasH: 0,
+    drawX: 0,
+    drawY: 0,
+    drawWidth: 0,
+    drawHeight: 0,
+    metricsCalculated: false
   });
+
+  // Track DOM state in JS to prevent DOM reads and string allocations
+  const panelStateCache = useRef(PANELS.map(() => ({ opacity: -1, className: "", pointer: "", ty: "" })));
 
   const updateLayoutCache = () => {
     const section = sectionRef.current;
@@ -116,6 +124,7 @@ const ScrollStory: React.FC = () => {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
       }
+      layoutCache.current.metricsCalculated = false; // Force recalc of draw metrics on next frame
     }
   };
 
@@ -141,27 +150,36 @@ const ScrollStory: React.FC = () => {
     const imgH = img.naturalHeight;
     if (imgW === 0 || imgH === 0) return;
 
-    const isPortrait = H > W;
-    const isPortraitFrame = imgH > imgW;
-    
-    let scale;
-    if (isPortrait) {
-      if (isPortraitFrame) {
-        scale = Math.max(W / imgW, H / imgH);
+    // Calculate dimensions only once per resize/orientation change
+    if (!layoutCache.current.metricsCalculated) {
+      const isPortrait = H > W;
+      const isPortraitFrame = imgH > imgW;
+      
+      let scale;
+      if (isPortrait) {
+        if (isPortraitFrame) {
+          scale = Math.max(W / imgW, H / imgH);
+        } else {
+          scale = Math.min(W / imgW, H / imgH);
+        }
       } else {
-        scale = Math.min(W / imgW, H / imgH);
+        scale = Math.max(W / imgW, H / imgH);
       }
-    } else {
-      scale = Math.max(W / imgW, H / imgH);
+
+      layoutCache.current.drawWidth = imgW * scale;
+      layoutCache.current.drawHeight = imgH * scale;
+      layoutCache.current.drawX = (W - layoutCache.current.drawWidth) / 2;
+      layoutCache.current.drawY = (H - layoutCache.current.drawHeight) / 2;
+      layoutCache.current.metricsCalculated = true;
     }
 
-    const drawWidth = imgW * scale;
-    const drawHeight = imgH * scale;
-    const drawX = (W - drawWidth) / 2;
-    const drawY = (H - drawHeight) / 2;
-
-    // We don't need clearRect because { alpha: false } makes it opaque and we cover the whole bounds.
-    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+    ctx.drawImage(
+      img, 
+      layoutCache.current.drawX, 
+      layoutCache.current.drawY, 
+      layoutCache.current.drawWidth, 
+      layoutCache.current.drawHeight
+    );
   };
 
   const targetFrameRef = useRef(0);
@@ -187,26 +205,33 @@ const ScrollStory: React.FC = () => {
         }
       }
 
-      const translateY = opacity < 0.5 ? 16 : 0;
+      // Fast-path cache diffing to prevent DOM layout thrashing
+      const state = panelStateCache.current[i];
       
-      let appliedPosition = panel.position;
-      if (isPortrait) {
-        appliedPosition = i % 2 === 0 ? "top" : "center";
-      } else {
-        appliedPosition = i % 2 === 0 ? "left" : "right";
+      const newClassName = `scroll-text-panel ${isPortrait ? (i % 2 === 0 ? "top" : "center") : (i % 2 === 0 ? "left" : "right")}`;
+      if (state.className !== newClassName) {
+        state.className = newClassName;
+        el.className = newClassName;
       }
       
-      const newClassName = `scroll-text-panel ${appliedPosition}`;
-      if (el.className !== newClassName) el.className = newClassName;
-      
-      const newOpacity = opacity.toFixed(3);
-      if (el.style.opacity !== newOpacity) el.style.opacity = newOpacity;
+      // Throttle opacity updates slightly to avoid string allocs if change is negligible
+      if (Math.abs(state.opacity - opacity) > 0.01 || (opacity === 0 && state.opacity !== 0) || (opacity === 1 && state.opacity !== 1)) {
+        state.opacity = opacity;
+        el.style.opacity = String(opacity);
+      }
       
       const newPointer = opacity < 0.1 ? "none" : "auto";
-      if (el.style.pointerEvents !== newPointer) el.style.pointerEvents = newPointer;
+      if (state.pointer !== newPointer) {
+        state.pointer = newPointer;
+        el.style.pointerEvents = newPointer;
+      }
       
+      const translateY = opacity < 0.5 ? 16 : 0;
       const newTy = `${translateY}px`;
-      if (el.style.getPropertyValue('--scroll-ty') !== newTy) el.style.setProperty('--scroll-ty', newTy);
+      if (state.ty !== newTy) {
+        state.ty = newTy;
+        el.style.setProperty('--scroll-ty', newTy);
+      }
     });
   };
 
@@ -316,10 +341,23 @@ const ScrollStory: React.FC = () => {
       targetFrameRef.current = target;
 
       FrameCache.prioritize(target);
-      scheduleRender();
+      
+      const lenis = (window as any).lenis;
+      if (lenis) {
+        // If Lenis is active, we are ALREADY inside a requestAnimationFrame! 
+        // Execute synchronously for zero latency.
+        updateCanvasAndPanels();
+      } else {
+        scheduleRender();
+      }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const lenis = (window as any).lenis;
+    if (lenis) {
+      lenis.on("scroll", onScroll);
+    } else {
+      window.addEventListener("scroll", onScroll, { passive: true });
+    }
 
     const unsubscribe = FrameCache.subscribe((loadedIdx: number) => {
       const target = targetFrameRef.current;
@@ -343,7 +381,11 @@ const ScrollStory: React.FC = () => {
     initialDraw();
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      if (lenis) {
+        lenis.off("scroll", onScroll);
+      } else {
+        window.removeEventListener("scroll", onScroll);
+      }
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (drawTimer) clearTimeout(drawTimer);
       unsubscribe();
