@@ -377,30 +377,27 @@ const ScrollStory: React.FC = () => {
       const pct = Math.max(0, Math.min(1, raw));
 
       const target = Math.round(pct * (TOTAL_FRAMES - 1));
-      targetFrameRef.current = target;
+      
+      // Strict prevention of unnecessary DOM/Canvas calls
+      if (target === targetFrameRef.current) return;
 
+      targetFrameRef.current = target;
       FrameCache.prioritize(target);
       
-      const lenis = (window as any).lenis;
-      if (lenis) {
-        // If Lenis is active, we are ALREADY inside a requestAnimationFrame! 
-        // Execute synchronously for zero latency.
-        updateCanvasAndPanels();
-      } else {
-        scheduleRender();
-      }
+      // Execute synchronously! iOS Safari throttles requestAnimationFrame during native touch scrolls.
+      // Synchronous execution in the passive scroll event is the ONLY way to track the finger 1:1.
+      updateCanvasAndPanels();
     };
 
-    const lenis = (window as any).lenis;
-    if (lenis) {
-      lenis.on("scroll", onScroll);
-    } else {
-      window.addEventListener("scroll", onScroll, { passive: true });
-    }
+    // Use native passive scroll listener universally.
+    // On mobile: captures butter-smooth compositor events directly.
+    // On desktop: Lenis smooth scroll translates to window.scrollTo, natively triggering this.
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     const unsubscribe = FrameCache.subscribe((loadedIdx: number) => {
       const target = targetFrameRef.current;
       if (Math.abs(loadedIdx - target) <= 2) {
+        // Background loads use RAF so they don't block the main thread
         scheduleRender();
       }
     });
@@ -420,11 +417,7 @@ const ScrollStory: React.FC = () => {
     initialDraw();
 
     return () => {
-      if (lenis) {
-        lenis.off("scroll", onScroll);
-      } else {
-        window.removeEventListener("scroll", onScroll);
-      }
+      window.removeEventListener("scroll", onScroll);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (drawTimer) clearTimeout(drawTimer);
       unsubscribe();
