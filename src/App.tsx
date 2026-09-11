@@ -1,41 +1,51 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import "./index.css";
 import { CartProvider } from "./context/CartContext";
+import LoadingScreen from "./components/LoadingScreen";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import ScrollStory from "./components/ScrollStory";
 import ProductSection from "./components/ProductSection";
-import LoadingScreen from "./components/LoadingScreen";
+import BenefitsSection from "./components/BenefitsSection";
+import IngredientsSection from "./components/IngredientsSection";
+import HowToUseSection from "./components/HowToUseSection";
+import StorySection from "./components/StorySection";
+import FAQSection from "./components/FAQSection";
+import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
 
+import CheckoutModal from "./components/CheckoutModal";
+import { useCart } from "./context/CartContext";
+
 const AppContent: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const { isCheckoutOpen, closeCheckout } = useCart();
   const lenisRef = useRef<Lenis | null>(null);
-  const [loaded, setLoaded] = useState(false);
 
-  const handleLoadDone = useCallback(() => setLoaded(true), []);
+  const handleLoadingDone = useCallback(() => {
+    setLoading(false);
+  }, []);
 
-  // Lenis smooth scroll engine — desktop only
+  // Lenis smooth scroll engine
   useEffect(() => {
+    if (loading) return;
+
     // Respect reduced-motion preference
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    // Disable Lenis on mobile/touch: native touch scrolling is already smooth,
-    // and Lenis can cause window.scrollY to lag behind the visual scroll position,
-    // which breaks the ScrollStory frame synchronization.
-    const isMobile = window.innerWidth < 768 || ('ontouchstart' in window && window.innerWidth < 1024);
-    if (prefersReducedMotion || isMobile) return;
+    if (prefersReducedMotion) return;
 
     const lenis = new Lenis({
-      duration: 0.8,
+      duration: 0.8, // Snappier response
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       wheelMultiplier: 1,
+      // Let smoothTouch default to false so mobile uses native scrolling, preventing the 'floating/laggy' feel
     });
 
     lenisRef.current = lenis;
-    (window as any).lenis = lenis;
+    (window as any).lenis = lenis; // Expose globally for navigation components
 
     let rafId: number;
 
@@ -51,20 +61,66 @@ const AppContent: React.FC = () => {
       lenisRef.current = null;
       (window as any).lenis = undefined;
     };
-  }, []);
+  }, [loading]);
+
+  // Pause Lenis when checkout modal is open
+  useEffect(() => {
+    const lenis = lenisRef.current;
+    if (!lenis) return;
+
+    if (isCheckoutOpen) {
+      lenis.stop();
+    } else {
+      lenis.start();
+    }
+  }, [isCheckoutOpen]);
+
+  // Intersection Observer for .reveal elements
+  useEffect(() => {
+    if (loading) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [loading]);
 
   return (
-    <div id="site-root" className="bg-pitch-black min-h-screen flex flex-col text-stark-white selection:bg-vibrant-red selection:text-stark-white">
-      {!loaded && <LoadingScreen onDone={handleLoadDone} />}
-      <Navbar />
-      <main className="flex-grow">
-        <HeroSection />
-        <ScrollStory />
-        <ProductSection />
-      </main>
-      {/* We keep the footer but you may want to redesign it as well to match the aesthetic */}
-      <Footer />
-    </div>
+    <>
+      {/* Loading Screen */}
+      <LoadingScreen onDone={handleLoadingDone} />
+
+      {/* Main site */}
+      <div id="site-root" aria-hidden={loading}>
+        <Navbar />
+
+        <main>
+          <HeroSection />
+          <ScrollStory />
+          <ProductSection />
+          <BenefitsSection />
+          <IngredientsSection />
+          <HowToUseSection />
+          <StorySection />
+          <FAQSection />
+        </main>
+
+        <Footer />
+        <CartDrawer />
+      </div>
+
+      <CheckoutModal isOpen={isCheckoutOpen} onClose={closeCheckout} />
+    </>
   );
 };
 
@@ -77,4 +133,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
