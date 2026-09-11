@@ -18,11 +18,8 @@ export class FrameCacheManager {
     if (this.currentMode === mode) return false;
     this.currentMode = mode;
     
-    // Evict all frames that don't match the new mode
     for (let i = 0; i < TOTAL_FRAMES; i++) {
       if (this.frames[i]) {
-        this.frames[i]!.onload = null;
-        this.frames[i]!.onerror = null;
         this.frames[i]!.src = "";
       }
       this.frames[i] = null;
@@ -30,21 +27,19 @@ export class FrameCacheManager {
     }
     
     this.queue = [];
-    return true; // Mode changed
+    this.activeLoads = 0;
+    return true; 
   }
   
-  // Track queue
   private queue: number[] = [];
   private activeLoads = 0;
-  private MAX_CONCURRENT = 2; // Reduced to prevent network/decoding stutter
-  private CACHE_WINDOW = 30; // Keeps +/- 30 frames in memory on desktop
+  private MAX_CONCURRENT = 4; 
+  private CACHE_WINDOW = 40; 
   private lastTargetIdx = -1;
-  private scrollDirection = 1; // 1 for down, -1 for up
+  private scrollDirection = 1;
 
-  // Frame-load event subscribers
   private listeners: ((frameIdx: number) => void)[] = [];
 
-  /** Subscribe to frame-loaded events. Returns an unsubscribe function. */
   public subscribe(cb: (frameIdx: number) => void): () => void {
     this.listeners.push(cb);
     return () => {
@@ -60,9 +55,6 @@ export class FrameCacheManager {
     return String(n).padStart(3, "0");
   }
 
-  /**
-   * Preload critical frames and return a promise that resolves when they are done.
-   */
   public preloadCritical(
     count: number,
     onProgress: (pct: number) => void
@@ -85,21 +77,13 @@ export class FrameCacheManager {
     });
   }
 
-  /**
-   * Start progressively loading the rest of the frames in the background.
-   */
   public startBackgroundLoad() {
     this.rebuildQueue(0);
     this.processQueue();
   }
 
-  /**
-   * Reprioritize the queue based on the user's current scroll frame target.
-   * Evicts distant frames and queues nearby frames highest.
-   */
   public prioritize(targetIdx: number) {
-    // Throttle prioritization: only rebuild queue if target moved significantly
-    if (Math.abs(this.lastTargetIdx - targetIdx) < 5) return;
+    if (Math.abs(this.lastTargetIdx - targetIdx) < 3) return;
     
     if (this.lastTargetIdx !== -1) {
       this.scrollDirection = targetIdx > this.lastTargetIdx ? 1 : -1;
@@ -108,11 +92,14 @@ export class FrameCacheManager {
     this.lastTargetIdx = targetIdx;
 
     if (typeof window !== 'undefined') {
-      // Use smaller cache on mobile to prevent RAM crashes
-      this.CACHE_WINDOW = window.innerWidth < 768 ? 15 : 30;
+      // Desktop can handle all frames in memory. Mobile evicts distant frames.
+      this.CACHE_WINDOW = window.innerWidth < 768 ? 40 : TOTAL_FRAMES;
     }
 
-    this.evictDistantFrames(targetIdx);
+    if (this.CACHE_WINDOW < TOTAL_FRAMES) {
+      this.evictDistantFrames(targetIdx);
+    }
+    
     this.rebuildQueue(targetIdx);
     this.processQueue();
   }
@@ -121,15 +108,13 @@ export class FrameCacheManager {
     const newQueue: number[] = [];
     const queued = new Set<number>();
 
-    // Queue target immediately
     if (targetIdx >= 0 && targetIdx < TOTAL_FRAMES && this.states[targetIdx] === "unloaded") {
       newQueue.push(targetIdx);
       queued.add(targetIdx);
     }
 
-    // Adaptive lookahead windows based on direction
-    const forwardLookahead = this.scrollDirection === 1 ? 30 : 10;
-    const backwardLookahead = this.scrollDirection === -1 ? 30 : 10;
+    const forwardLookahead = this.scrollDirection === 1 ? 25 : 10;
+    const backwardLookahead = this.scrollDirection === -1 ? 25 : 10;
     const maxOffset = Math.max(forwardLookahead, backwardLookahead);
 
     for (let offset = 1; offset <= maxOffset; offset++) {
@@ -137,7 +122,6 @@ export class FrameCacheManager {
       const down = targetIdx - offset;
 
       if (this.scrollDirection === 1) {
-        // Scrolling DOWN (forward)
         if (offset <= forwardLookahead && up < TOTAL_FRAMES && this.states[up] === "unloaded" && !queued.has(up)) {
           newQueue.push(up);
           queued.add(up);
@@ -147,7 +131,6 @@ export class FrameCacheManager {
           queued.add(down);
         }
       } else {
-        // Scrolling UP (backward)
         if (offset <= backwardLookahead && down >= 0 && this.states[down] === "unloaded" && !queued.has(down)) {
           newQueue.push(down);
           queued.add(down);
@@ -159,20 +142,16 @@ export class FrameCacheManager {
       }
     }
 
+    // Prioritize frames closest to the target
+    newQueue.sort((a, b) => Math.abs(a - targetIdx) - Math.abs(b - targetIdx));
     this.queue = newQueue;
   }
 
   private evictDistantFrames(targetIdx: number) {
     for (let i = 0; i < TOTAL_FRAMES; i++) {
-      // Evict only if fully loaded or errored. 
-      // Do not evict 'loading' to prevent orphaned active requests.
       if (this.states[i] === "loaded" || this.states[i] === "error") {
-        // Add a hysteresis buffer (+15) so frames don't thrash at the cache boundary
-        if (Math.abs(i - targetIdx) > this.CACHE_WINDOW + 15) {
-          // Free memory
+        if (Math.abs(i - targetIdx) > this.CACHE_WINDOW + 20) {
           if (this.frames[i]) {
-            this.frames[i]!.onload = null;
-            this.frames[i]!.onerror = null;
             this.frames[i]!.src = ""; 
           }
           this.frames[i] = null;
@@ -189,8 +168,7 @@ export class FrameCacheManager {
       const idx = this.queue.shift();
       if (idx !== undefined && this.states[idx] === "unloaded") {
         this.loadFrame(idx, () => {
-          // Schedule next process after current finishes
-          setTimeout(() => this.processQueue(), 10); // slight yield to main thread
+          this.processQueue(); 
         });
       }
     }
@@ -206,32 +184,34 @@ export class FrameCacheManager {
     this.activeLoads++;
 
     const img = new window.Image();
+    img.decoding = "async"; // CRITICAL: Prevents main-thread stutter during JPEG decode
     const reqMode = this.currentMode;
     
-    img.onload = () => {
-      this.activeLoads--;
-      if (this.currentMode !== reqMode) {
-        if (onComplete) onComplete();
-        return;
-      }
-      this.frames[idx] = img;
-      this.states[idx] = "loaded";
-      this.notifyListeners(idx);
-      if (onComplete) onComplete();
-    };
-
-    img.onerror = () => {
-      this.activeLoads--;
-      if (this.currentMode !== reqMode) {
-        if (onComplete) onComplete();
-        return;
-      }
-      this.states[idx] = "error";
-      if (onComplete) onComplete();
-    };
-
-    // 1-indexed for the image paths
     img.src = `/images/${reqMode}/ezgif-frame-${this.pad(idx + 1)}.jpg`;
+
+    img.decode()
+      .then(() => {
+        if (this.currentMode !== reqMode) {
+          this.activeLoads--;
+          if (onComplete) onComplete();
+          return;
+        }
+        this.activeLoads--;
+        this.frames[idx] = img;
+        this.states[idx] = "loaded";
+        this.notifyListeners(idx);
+        if (onComplete) onComplete();
+      })
+      .catch(() => {
+        if (this.currentMode !== reqMode) {
+          this.activeLoads--;
+          if (onComplete) onComplete();
+          return;
+        }
+        this.activeLoads--;
+        this.states[idx] = "error";
+        if (onComplete) onComplete();
+      });
   }
 
   public getFrame(idx: number): HTMLImageElement | null {

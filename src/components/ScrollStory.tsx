@@ -82,10 +82,15 @@ const ScrollStory: React.FC = () => {
     layoutCache.current.sectionH = section.offsetHeight - window.innerHeight;
   };
 
-  // Resize canvas accounting for devicePixelRatio
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+
   const updateCanvasSize = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    if (!ctxRef.current) {
+      ctxRef.current = canvas.getContext("2d", { alpha: false });
+    }
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const W = canvas.clientWidth;
@@ -95,7 +100,7 @@ const ScrollStory: React.FC = () => {
     layoutCache.current.canvasH = H;
 
     const isPortrait = H > W;
-    layoutCache.current.isPortrait = isPortrait; // Cache for panel positioning
+    layoutCache.current.isPortrait = isPortrait; 
     
     const mode = isPortrait ? "mobile" : "desktop";
     const modeChanged = FrameCache.setMode(mode);
@@ -106,7 +111,7 @@ const ScrollStory: React.FC = () => {
     if (canvas.width !== scaledW || canvas.height !== scaledH || modeChanged) {
       canvas.width = scaledW;
       canvas.height = scaledH;
-      const ctx = canvas.getContext("2d");
+      const ctx = ctxRef.current;
       if (ctx) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
@@ -114,18 +119,17 @@ const ScrollStory: React.FC = () => {
     }
   };
 
-  // Draw frame to canvas using COVER-fit scaling
   const drawFrame = (frameIdx: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const img = FrameCache.getFrame(frameIdx);
     if (!img) {
-      FrameCache.prioritize(frameIdx); // Ensure it loads if evicted
+      FrameCache.prioritize(frameIdx); 
       return;
     }
 
-    const ctx = canvas.getContext("2d");
+    const ctx = ctxRef.current;
     if (!ctx) return;
 
     const W = layoutCache.current.canvasW;
@@ -135,6 +139,7 @@ const ScrollStory: React.FC = () => {
 
     const imgW = img.naturalWidth;
     const imgH = img.naturalHeight;
+    if (imgW === 0 || imgH === 0) return;
 
     const isPortrait = H > W;
     const isPortraitFrame = imgH > imgW;
@@ -142,16 +147,11 @@ const ScrollStory: React.FC = () => {
     let scale;
     if (isPortrait) {
       if (isPortraitFrame) {
-        // We have the correct mobile portrait frame.
-        // Use Math.max (cover) to perfectly fill the portrait screen without black bars.
         scale = Math.max(W / imgW, H / imgH);
       } else {
-        // Fallback: If we temporarily have a landscape frame in portrait mode (e.g. during rotation),
-        // use Math.min (contain) so we don't zoom in 300% and crop out the bottle entirely.
         scale = Math.min(W / imgW, H / imgH);
       }
     } else {
-      // Desktop always uses Math.max (cover) to fill screen
       scale = Math.max(W / imgW, H / imgH);
     }
 
@@ -160,15 +160,13 @@ const ScrollStory: React.FC = () => {
     const drawX = (W - drawWidth) / 2;
     const drawY = (H - drawHeight) / 2;
 
-    ctx.clearRect(0, 0, W, H);
+    // We don't need clearRect because { alpha: false } makes it opaque and we cover the whole bounds.
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
   };
 
-  // High-performance single animation loop
   const targetFrameRef = useRef(0);
   const lastDrawnFrameRef = useRef(-1);
 
-  // Helper to calculate opacity and transform based on scrollPct
   const updatePanels = (pct: number) => {
     const { isPortrait } = layoutCache.current;
     
@@ -191,26 +189,27 @@ const ScrollStory: React.FC = () => {
 
       const translateY = opacity < 0.5 ? 16 : 0;
       
-      // Responsive alternating sequence
       let appliedPosition = panel.position;
       if (isPortrait) {
-        // Portrait Mobile: TOP -> BOTTOM -> TOP -> BOTTOM
-        // Note: CSS class "center" places the panel at the bottom center.
         appliedPosition = i % 2 === 0 ? "top" : "center";
       } else {
-        // Desktop / Landscape: LEFT -> RIGHT -> LEFT -> RIGHT
         appliedPosition = i % 2 === 0 ? "left" : "right";
       }
       
-      // Directly mutate styles to avoid state updates
-      el.className = `scroll-text-panel ${appliedPosition}`;
-      el.style.opacity = opacity.toString();
-      el.style.pointerEvents = opacity < 0.1 ? "none" : "auto";
-      el.style.setProperty('--scroll-ty', `${translateY}px`);
+      const newClassName = `scroll-text-panel ${appliedPosition}`;
+      if (el.className !== newClassName) el.className = newClassName;
+      
+      const newOpacity = opacity.toFixed(3);
+      if (el.style.opacity !== newOpacity) el.style.opacity = newOpacity;
+      
+      const newPointer = opacity < 0.1 ? "none" : "auto";
+      if (el.style.pointerEvents !== newPointer) el.style.pointerEvents = newPointer;
+      
+      const newTy = `${translateY}px`;
+      if (el.style.getPropertyValue('--scroll-ty') !== newTy) el.style.setProperty('--scroll-ty', newTy);
     });
   };
 
-  // Resize + orientation handling
   useEffect(() => {
     let resizeTimer: ReturnType<typeof setTimeout>;
 
@@ -218,7 +217,6 @@ const ScrollStory: React.FC = () => {
       updateLayoutCache();
       updateCanvasSize();
       
-      // Force panel update on resize/orientation change
       const { sectionTop, sectionH } = layoutCache.current;
       if (sectionH > 0) {
         const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -226,7 +224,6 @@ const ScrollStory: React.FC = () => {
         updatePanels(Math.max(0, Math.min(1, raw)));
       }
 
-      // Immediately redraw the last drawn frame to prevent blank canvas
       const lastFrame = lastDrawnFrameRef.current;
       if (lastFrame >= 0) {
         if (FrameCache.isLoaded(lastFrame)) {
@@ -239,24 +236,19 @@ const ScrollStory: React.FC = () => {
 
     const handleResize = () => {
       clearTimeout(resizeTimer);
-      // Immediate redraw to prevent black flash
       handleResizeImmediate();
-      // Debounced second pass for layout cache accuracy
       resizeTimer = setTimeout(handleResizeImmediate, 100);
     };
 
     window.addEventListener("resize", handleResize);
 
-    // Handle orientation changes on mobile
     const handleOrientationChange = () => {
-      // Orientation changes need a slight delay for viewport to settle
       setTimeout(handleResizeImmediate, 50);
       setTimeout(handleResizeImmediate, 200);
     };
 
     window.addEventListener("orientationchange", handleOrientationChange);
 
-    // ResizeObserver for container-level size changes (address bar, etc.)
     let resizeObserver: ResizeObserver | null = null;
     const canvas = canvasRef.current;
     if (canvas && typeof ResizeObserver !== "undefined") {
@@ -274,7 +266,6 @@ const ScrollStory: React.FC = () => {
     };
   }, []);
 
-  // Main scroll + animation loop
   useEffect(() => {
     let ticking = false;
 
@@ -283,11 +274,14 @@ const ScrollStory: React.FC = () => {
       const target = targetFrameRef.current;
       const diff = target - current;
 
-      if (Math.abs(diff) > 0.01) {
-        currentFrameRef.current = current + diff * 0.6;
+      if (Math.abs(diff) > 0.05) {
+        currentFrameRef.current = current + diff * 0.4;
       } else {
         currentFrameRef.current = target;
       }
+      
+      const currentPct = currentFrameRef.current / (TOTAL_FRAMES - 1);
+      updatePanels(currentPct);
 
       const frameToDraw = Math.max(0, Math.min(TOTAL_FRAMES - 1, Math.round(currentFrameRef.current)));
 
@@ -331,14 +325,9 @@ const ScrollStory: React.FC = () => {
       const raw = (scrollY - sectionTop) / sectionH;
       const pct = Math.max(0, Math.min(1, raw));
 
-      // 1. Direct DOM update for panels (no React state re-render)
-      updatePanels(pct);
-
-      // 2. Schedule canvas frame
       const target = Math.round(pct * (TOTAL_FRAMES - 1));
       targetFrameRef.current = target;
 
-      // 3. Prioritize background loading around new target
       FrameCache.prioritize(target);
 
       scheduleRender();
@@ -346,25 +335,22 @@ const ScrollStory: React.FC = () => {
 
     window.addEventListener("scroll", onScroll, { passive: true });
 
-    // Subscribe to frame load events — redraw immediately if target frame loaded
     const unsubscribe = FrameCache.subscribe((loadedIdx: number) => {
       const target = targetFrameRef.current;
-      // If the just-loaded frame is the current target (or very close), redraw
       if (Math.abs(loadedIdx - target) <= 1) {
         scheduleRender();
       }
     });
 
-    // Attempt initial draw if loaded
     let drawTimer: ReturnType<typeof setTimeout>;
     const initialDraw = () => {
-      updateCanvasSize(); // Ensure mode is set before checking isLoaded
+      updateCanvasSize(); 
       if (FrameCache.isLoaded(0)) {
         updateLayoutCache();
         drawFrame(0);
         updatePanels(0);
       } else {
-        FrameCache.prioritize(0); // Trigger load if needed
+        FrameCache.prioritize(0); 
         drawTimer = setTimeout(initialDraw, 50);
       }
     };
