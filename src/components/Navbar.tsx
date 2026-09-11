@@ -1,95 +1,48 @@
 import React, { useState } from "react";
-import SAYFLogo from "./SAYFLogo";
 
-interface NavbarProps {}
-
-const NAV_LINKS = [
-  { label: "Product", target: "product" },
-  { label: "Benefits", target: "benefits" },
-  { label: "Ingredients", target: "ingredients" },
-  { label: "How to Use", target: "howto" },
-  { label: "Our Story", target: "story" },
-  { label: "FAQ", target: "faq" },
-];
-
-const MenuIcon: React.FC = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <line x1="4" y1="8" x2="20" y2="8" />
-    <line x1="4" y1="16" x2="20" y2="16" />
-  </svg>
-);
-
-const Navbar: React.FC<NavbarProps> = () => {
+const Navbar: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      if ((window as any).lenis) {
-        (window as any).lenis.scrollTo(el);
-      } else {
-        el.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-    setMenuOpen(false);
-  };
-
   return (
-    <nav className="navbar position-fixed top-0 start-0 end-0 px-3 px-md-5 d-flex align-items-center justify-content-between" role="navigation" aria-label="Main navigation" style={{ background: "transparent" }}>
-      {/* Logo */}
-      <div className="navbar-logo flex-shrink-0">
-        <button
-          onClick={() => { 
-            if ((window as any).lenis) {
-              (window as any).lenis.scrollTo(0);
-            } else {
-              window.scrollTo({ top: 0, behavior: "smooth" }); 
-            }
-            setMenuOpen(false); 
-          }}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-          aria-label="Go to top"
-        >
-          <SAYFLogo width={80} />
-        </button>
+    <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-pitch-black/90 backdrop-blur-md border-b border-white/10">
+      <div className="text-2xl font-oswald font-bold tracking-widest uppercase">
+        <a href="#hero">Urban<span className="text-vibrant-red">Step</span></a>
       </div>
-
-      {/* Actions */}
-      <div className="navbar-actions d-flex align-items-center ms-auto gap-2 gap-sm-3">
-        {/* Toggle Menu Button */}
-        <button
-          className="navbar-menu-btn d-flex align-items-center justify-content-center p-2"
+      
+      {/* Desktop Menu */}
+      <div className="hidden md:flex items-center gap-10 text-sm tracking-widest uppercase text-ash-grey">
+        <a href="#collections" className="hover:text-stark-white transition-colors duration-300">Collections</a>
+        <a href="#about" className="hover:text-stark-white transition-colors duration-300">About</a>
+        <a href="#contact" className="hover:text-stark-white transition-colors duration-300">Contact</a>
+      </div>
+      
+      <div className="flex items-center gap-6">
+        <button className="text-sm font-semibold tracking-widest uppercase hover:text-vibrant-red transition-colors duration-300 flex items-center gap-2">
+          Cart <span className="bg-vibrant-red text-stark-white text-xs px-2 py-0.5 rounded-full">0</span>
+        </button>
+        
+        {/* Mobile Menu Toggle */}
+        <button 
+          className="md:hidden text-stark-white p-2"
           onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle navigation menu"
-          id="navbar-menu-btn"
         >
-          <MenuIcon />
-        </button>
-        <button
-          className="navbar-cta"
-          onClick={() => scrollTo("product")}
-          id="navbar-order-now"
-        >
-          Order Now
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="4" y1="8" x2="20" y2="8" />
+            <line x1="4" y1="16" x2="20" y2="16" />
+          </svg>
         </button>
       </div>
 
-      {/* Dropdown Menu */}
-      <div className={`navbar-dropdown position-absolute flex-column gap-1${menuOpen ? " open" : ""}`}>
-        {NAV_LINKS.map((link) => (
-          <button
-            key={link.target}
-            className="navbar-link w-100 text-start"
-            onClick={() => scrollTo(link.target)}
-            id={`nav-${link.target}`}
-          >
-            {link.label}
-          </button>
-        ))}
-      </div>
+      {/* Mobile Dropdown */}
+      {menuOpen && (
+        <div className="absolute top-full left-0 right-0 bg-pitch-black border-b border-white/10 py-4 px-6 flex flex-col gap-4 md:hidden">
+          <a href="#collections" className="text-lg uppercase tracking-widest hover:text-vibrant-red transition-colors">Collections</a>
+          <a href="#about" className="text-lg uppercase tracking-widest hover:text-vibrant-red transition-colors">About</a>
+          <a href="#contact" className="text-lg uppercase tracking-widest hover:text-vibrant-red transition-colors">Contact</a>
+        </div>
+      )}
     </nav>
   );
 };
 
 export default Navbar;
-
