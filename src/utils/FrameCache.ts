@@ -96,7 +96,7 @@ export class FrameCacheManager {
 
     if (typeof window !== 'undefined') {
       // Desktop can handle all frames in memory. Mobile evicts distant frames.
-      this.CACHE_WINDOW = window.innerWidth < 768 ? 40 : TOTAL_FRAMES;
+      this.CACHE_WINDOW = window.innerWidth < 768 ? 15 : TOTAL_FRAMES;
     }
 
     if (this.CACHE_WINDOW < TOTAL_FRAMES) {
@@ -160,7 +160,7 @@ export class FrameCacheManager {
   private evictDistantFrames(targetIdx: number) {
     for (let i = 0; i < TOTAL_FRAMES; i++) {
       if (this.states[i] === "loaded" || this.states[i] === "error") {
-        if (Math.abs(i - targetIdx) > this.CACHE_WINDOW + 20) {
+        if (Math.abs(i - targetIdx) > this.CACHE_WINDOW) {
           if (this.frames[i]) {
             this.frames[i]!.src = ""; 
           }

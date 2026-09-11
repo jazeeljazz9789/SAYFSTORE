@@ -74,7 +74,8 @@ const ScrollStory: React.FC = () => {
     drawY: 0,
     drawWidth: 0,
     drawHeight: 0,
-    metricsCalculated: false
+    metricsCalculated: false,
+    initialMobileHeight: -1
   });
 
   // Track DOM state in JS to prevent DOM reads and string allocations
@@ -87,7 +88,19 @@ const ScrollStory: React.FC = () => {
     const rect = section.getBoundingClientRect();
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     layoutCache.current.sectionTop = rect.top + scrollTop;
-    layoutCache.current.sectionH = section.offsetHeight - window.innerHeight;
+    
+    // Lock viewport height on mobile so URL bar changes don't shift the scroll percentage
+    let h = window.innerHeight;
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      if (layoutCache.current.initialMobileHeight === -1) {
+        layoutCache.current.initialMobileHeight = h;
+      }
+      h = layoutCache.current.initialMobileHeight;
+    } else {
+      layoutCache.current.initialMobileHeight = -1; // Reset if resized to desktop
+    }
+    
+    layoutCache.current.sectionH = section.offsetHeight - h;
   };
 
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -268,6 +281,7 @@ const ScrollStory: React.FC = () => {
     window.addEventListener("resize", handleResize);
 
     const handleOrientationChange = () => {
+      layoutCache.current.initialMobileHeight = -1; // Reset to recalculate new orientation height
       setTimeout(handleResizeImmediate, 50);
       setTimeout(handleResizeImmediate, 200);
     };
