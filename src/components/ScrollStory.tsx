@@ -269,28 +269,19 @@ const ScrollStory: React.FC = () => {
   useEffect(() => {
     let ticking = false;
 
-    const renderLoop = () => {
-      const current = currentFrameRef.current;
+    const updateCanvasAndPanels = () => {
       const target = targetFrameRef.current;
-      const diff = target - current;
-
-      if (Math.abs(diff) > 0.05) {
-        currentFrameRef.current = current + diff * 0.4;
-      } else {
-        currentFrameRef.current = target;
-      }
+      currentFrameRef.current = target;
       
-      const currentPct = currentFrameRef.current / (TOTAL_FRAMES - 1);
+      const currentPct = target / (TOTAL_FRAMES - 1);
       updatePanels(currentPct);
 
-      const frameToDraw = Math.max(0, Math.min(TOTAL_FRAMES - 1, Math.round(currentFrameRef.current)));
-
-      let nearestFrame = frameToDraw;
+      let nearestFrame = target;
       if (!FrameCache.isLoaded(nearestFrame)) {
-        const MAX_NEAREST_SEARCH = 15;
-        for (let offset = 1; offset <= MAX_NEAREST_SEARCH; offset++) {
-          const up = frameToDraw + offset;
-          const down = frameToDraw - offset;
+        // Expand search to TOTAL_FRAMES to guarantee we never freeze waiting for the network
+        for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
+          const up = target + offset;
+          const down = target - offset;
           if (up < TOTAL_FRAMES && FrameCache.isLoaded(up)) { nearestFrame = up; break; }
           if (down >= 0 && FrameCache.isLoaded(down)) { nearestFrame = down; break; }
         }
@@ -302,18 +293,14 @@ const ScrollStory: React.FC = () => {
           lastDrawnFrameRef.current = nearestFrame;
         }
       }
-
-      if (Math.abs(target - currentFrameRef.current) > 0.01) {
-        animFrameRef.current = requestAnimationFrame(renderLoop);
-      } else {
-        ticking = false;
-      }
+      
+      ticking = false;
     };
 
     const scheduleRender = () => {
       if (!ticking) {
         ticking = true;
-        animFrameRef.current = requestAnimationFrame(renderLoop);
+        animFrameRef.current = requestAnimationFrame(updateCanvasAndPanels);
       }
     };
 
@@ -329,7 +316,6 @@ const ScrollStory: React.FC = () => {
       targetFrameRef.current = target;
 
       FrameCache.prioritize(target);
-
       scheduleRender();
     };
 
@@ -337,7 +323,7 @@ const ScrollStory: React.FC = () => {
 
     const unsubscribe = FrameCache.subscribe((loadedIdx: number) => {
       const target = targetFrameRef.current;
-      if (Math.abs(loadedIdx - target) <= 1) {
+      if (Math.abs(loadedIdx - target) <= 2) {
         scheduleRender();
       }
     });

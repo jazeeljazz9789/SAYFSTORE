@@ -30,6 +30,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [stateName, setStateName] = useState("");
   const [modalState, setModalState] = useState<ModalState>("form");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -93,6 +96,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
     const trimmedAddress = address.trim();
+    const trimmedCity = city.trim();
+    const trimmedPin = pincode.trim();
+    const trimmedState = stateName.trim();
 
     if (trimmedName.length < 2) {
       setErrorMessage("Please enter your full name (at least 2 characters).");
@@ -113,6 +119,24 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
+    if (trimmedCity.length < 2) {
+      setErrorMessage("Please enter your city.");
+      setModalState("error");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setErrorMessage("Please enter a valid 6-digit PIN code.");
+      setModalState("error");
+      return;
+    }
+
+    if (trimmedState.length < 2) {
+      setErrorMessage("Please enter your state.");
+      setModalState("error");
+      return;
+    }
+
     if (items.length === 0) {
       setErrorMessage("Your cart is empty.");
       setModalState("error");
@@ -124,10 +148,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     setErrorMessage("");
 
     try {
+      const fullAddress = `${trimmedAddress}, ${trimmedCity}, ${trimmedState} ${trimmedPin}`;
+      
       const response = await api.createOrder({
         name: trimmedName,
         phone: trimmedPhone,
-        address: trimmedAddress,
+        address: fullAddress,
         paymentMethod: "cod",
         items: items.map((item) => ({ id: item.id, qty: item.qty })),
       }, idempotencyKey);
@@ -149,7 +175,10 @@ Hi SAYF Store, I want to buy ${quantityText} of ${productName} for ₹${formatte
 Order ID: ${response.order.orderId}
 Name: ${trimmedName}
 Phone: ${formattedPhone}
-Address: ${trimmedAddress}`;
+Address: ${trimmedAddress}
+City: ${trimmedCity}
+State: ${trimmedState}
+PIN: ${trimmedPin}`;
 
       const encodedMessage = encodeURIComponent(message);
       const url = `https://wa.me/${MANAGER_WHATSAPP_NUMBER}?text=${encodedMessage}`;
@@ -159,6 +188,9 @@ Address: ${trimmedAddress}`;
       setName("");
       setPhone("");
       setAddress("");
+      setCity("");
+      setPincode("");
+      setStateName("");
       onClose(); // Navigate back to the shop/product page smoothly
 
       // 2. Open WhatsApp in a way that doesn't interrupt the current app flow
@@ -251,6 +283,46 @@ Address: ${trimmedAddress}`;
                     onChange={(e) => setAddress(e.target.value)}
                     disabled={modalState === "submitting"}
                   />
+                </div>
+
+                <div className="form-row-3">
+                  <div className="form-field">
+                    <label htmlFor="checkout-city">CITY</label>
+                    <input
+                      id="checkout-city"
+                      type="text"
+                      required
+                      maxLength={100}
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      disabled={modalState === "submitting"}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="checkout-pin">PIN CODE</label>
+                    <input
+                      id="checkout-pin"
+                      type="text"
+                      inputMode="numeric"
+                      required
+                      maxLength={6}
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, ""))}
+                      disabled={modalState === "submitting"}
+                    />
+                  </div>
+                  <div className="form-field form-field-state" style={{ gridColumn: "span 2" }}>
+                    <label htmlFor="checkout-state">STATE</label>
+                    <input
+                      id="checkout-state"
+                      type="text"
+                      required
+                      maxLength={100}
+                      value={stateName}
+                      onChange={(e) => setStateName(e.target.value)}
+                      disabled={modalState === "submitting"}
+                    />
+                  </div>
                 </div>
 
                 <div className="order-summary">

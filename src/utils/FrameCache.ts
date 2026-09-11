@@ -38,6 +38,9 @@ export class FrameCacheManager {
   private lastTargetIdx = -1;
   private scrollDirection = 1;
 
+  private isScrolling = false;
+  private scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
+
   private listeners: ((frameIdx: number) => void)[] = [];
 
   public subscribe(cb: (frameIdx: number) => void): () => void {
@@ -100,6 +103,13 @@ export class FrameCacheManager {
       this.evictDistantFrames(targetIdx);
     }
     
+    this.isScrolling = true;
+    if (this.scrollEndTimer) clearTimeout(this.scrollEndTimer);
+    this.scrollEndTimer = setTimeout(() => {
+      this.isScrolling = false;
+      this.processQueue();
+    }, 150);
+
     this.rebuildQueue(targetIdx);
     this.processQueue();
   }
@@ -162,9 +172,11 @@ export class FrameCacheManager {
   }
 
   private processQueue() {
-    if (this.activeLoads >= this.MAX_CONCURRENT || this.queue.length === 0) return;
+    // If actively scrolling, only allow 1 concurrent load to reserve CPU/Network for the main thread
+    const allowedConcurrent = this.isScrolling ? 1 : this.MAX_CONCURRENT;
+    if (this.activeLoads >= allowedConcurrent || this.queue.length === 0) return;
 
-    while (this.activeLoads < this.MAX_CONCURRENT && this.queue.length > 0) {
+    while (this.activeLoads < allowedConcurrent && this.queue.length > 0) {
       const idx = this.queue.shift();
       if (idx !== undefined && this.states[idx] === "unloaded") {
         this.loadFrame(idx, () => {
