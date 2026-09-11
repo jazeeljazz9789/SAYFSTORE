@@ -86,7 +86,7 @@ export class FrameCacheManager {
   }
 
   public prioritize(targetIdx: number) {
-    if (Math.abs(this.lastTargetIdx - targetIdx) < 3) return;
+    if (this.lastTargetIdx === targetIdx) return;
     
     if (this.lastTargetIdx !== -1) {
       this.scrollDirection = targetIdx > this.lastTargetIdx ? 1 : -1;

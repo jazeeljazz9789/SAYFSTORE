@@ -303,12 +303,37 @@ const ScrollStory: React.FC = () => {
 
       let nearestFrame = target;
       if (!FrameCache.isLoaded(nearestFrame)) {
-        // Expand search to TOTAL_FRAMES to guarantee we never freeze waiting for the network
-        for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
-          const up = target + offset;
-          const down = target - offset;
-          if (up < TOTAL_FRAMES && FrameCache.isLoaded(up)) { nearestFrame = up; break; }
-          if (down >= 0 && FrameCache.isLoaded(down)) { nearestFrame = down; break; }
+        const last = lastDrawnFrameRef.current;
+        if (last >= 0) {
+          if (target > last) {
+            // Scrolling forwards: search backwards from target down to last drawn
+            for (let i = target - 1; i >= last; i--) {
+              if (FrameCache.isLoaded(i)) {
+                nearestFrame = i;
+                break;
+              }
+            }
+          } else if (target < last) {
+            // Scrolling backwards: search forwards from target up to last drawn
+            for (let i = target + 1; i <= last; i++) {
+              if (FrameCache.isLoaded(i)) {
+                nearestFrame = i;
+                break;
+              }
+            }
+          }
+          // If we couldn't find ANY loaded frame between target and last, we fall back to last
+          if (!FrameCache.isLoaded(nearestFrame)) {
+            nearestFrame = last;
+          }
+        } else {
+          // Fallback if we haven't drawn anything yet
+          for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
+            const up = target + offset;
+            const down = target - offset;
+            if (up < TOTAL_FRAMES && FrameCache.isLoaded(up)) { nearestFrame = up; break; }
+            if (down >= 0 && FrameCache.isLoaded(down)) { nearestFrame = down; break; }
+          }
         }
       }
 
