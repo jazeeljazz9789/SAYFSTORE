@@ -63,6 +63,8 @@ const ScrollStory: React.FC = () => {
 
   const currentFrameRef = useRef(0);
   const animFrameRef = useRef<number | null>(null);
+  // Continuous scroll progress (0–1) — NOT quantized to frame boundaries
+  const scrollProgressRef = useRef(0);
 
   const layoutCache = useRef({
     sectionTop: 0,
@@ -75,7 +77,8 @@ const ScrollStory: React.FC = () => {
     drawWidth: 0,
     drawHeight: 0,
     metricsCalculated: false,
-    initialMobileHeight: -1
+    initialMobileHeight: -1,
+    layoutDirty: true, // Forces re-measurement on first scroll
   });
 
   // Track DOM state in JS to prevent DOM reads and string allocations
@@ -101,6 +104,7 @@ const ScrollStory: React.FC = () => {
     }
     
     layoutCache.current.sectionH = section.offsetHeight - h;
+    layoutCache.current.layoutDirty = false;
   };
 
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -274,6 +278,7 @@ const ScrollStory: React.FC = () => {
 
     const handleResize = () => {
       clearTimeout(resizeTimer);
+      layoutCache.current.layoutDirty = true; // Mark for re-measurement on next scroll
       handleResizeImmediate();
       resizeTimer = setTimeout(handleResizeImmediate, 100);
     };
@@ -282,6 +287,7 @@ const ScrollStory: React.FC = () => {
 
     const handleOrientationChange = () => {
       layoutCache.current.initialMobileHeight = -1; // Reset to recalculate new orientation height
+      layoutCache.current.layoutDirty = true;
       setTimeout(handleResizeImmediate, 50);
       setTimeout(handleResizeImmediate, 200);
     };
@@ -308,12 +314,9 @@ const ScrollStory: React.FC = () => {
   useEffect(() => {
     let ticking = false;
 
-    const updateCanvasAndPanels = () => {
+    const renderFrame = () => {
       const target = targetFrameRef.current;
       currentFrameRef.current = target;
-      
-      const currentPct = target / (TOTAL_FRAMES - 1);
-      updatePanels(currentPct);
 
       let nearestFrame = target;
       if (!FrameCache.isLoaded(nearestFrame)) {
@@ -336,7 +339,7 @@ const ScrollStory: React.FC = () => {
               }
             }
           }
-          // If we couldn't find ANY loaded frame between target and last, we fall back to last
+          // If we couldn't find ANY loaded frame between target and last, fall back to last
           if (!FrameCache.isLoaded(nearestFrame)) {
             nearestFrame = last;
           }
@@ -361,14 +364,28 @@ const ScrollStory: React.FC = () => {
       ticking = false;
     };
 
+    // Combined update: panels always use continuous scroll progress, canvas uses frame index
+    const updateCanvasAndPanels = () => {
+      // Panels use the CONTINUOUS scroll progress (smooth fade, no quantized jumps)
+      updatePanels(scrollProgressRef.current);
+      renderFrame();
+    };
+
     const scheduleRender = () => {
       if (!ticking) {
         ticking = true;
-        animFrameRef.current = requestAnimationFrame(updateCanvasAndPanels);
+        animFrameRef.current = requestAnimationFrame(() => {
+          renderFrame();
+        });
       }
     };
 
     const onScroll = () => {
+      // Re-measure layout if marked dirty (resize, orientation change, initial)
+      if (layoutCache.current.layoutDirty) {
+        updateLayoutCache();
+      }
+
       const { sectionTop, sectionH } = layoutCache.current;
       if (sectionH <= 0) return;
 
@@ -376,13 +393,17 @@ const ScrollStory: React.FC = () => {
       const raw = (scrollY - sectionTop) / sectionH;
       const pct = Math.max(0, Math.min(1, raw));
 
-      const target = Math.round(pct * (TOTAL_FRAMES - 1));
-      
-      // Strict prevention of unnecessary DOM/Canvas calls
-      if (target === targetFrameRef.current) return;
+      // Store continuous progress — this is what panels use for smooth fading
+      scrollProgressRef.current = pct;
 
-      targetFrameRef.current = target;
-      FrameCache.prioritize(target);
+      const target = Math.round(pct * (TOTAL_FRAMES - 1));
+
+      // Always update panels (they use continuous pct, not quantized frame index)
+      // Only re-prioritize frame loading when the target frame actually changes
+      if (target !== targetFrameRef.current) {
+        targetFrameRef.current = target;
+        FrameCache.prioritize(target);
+      }
       
       // Execute synchronously! iOS Safari throttles requestAnimationFrame during native touch scrolls.
       // Synchronous execution in the passive scroll event is the ONLY way to track the finger 1:1.

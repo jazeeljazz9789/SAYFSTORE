@@ -33,3 +33,155 @@ html.lenis {
 .lenis.lenis-smooth {
   scroll-behavior: auto;
 }
+
+/* ============================================================
+   ScrollStory — Scroll-scrub animation pattern
+   ============================================================ */
+
+/* Sticky viewport-pinned container — the core of scroll-scrubbing */
+.scroll-story-sticky {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh; /* Accounts for mobile URL bar */
+  overflow: hidden;
+  background: #000;
+}
+
+.scroll-story-canvas {
+  display: block;
+  image-rendering: auto;
+}
+
+/* --- Text Panels --- */
+.scroll-text-panel {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  max-width: 420px;
+  will-change: opacity;
+  transform: translateY(var(--scroll-ty, 0px));
+  transition: transform 0.15s ease-out;
+}
+
+/* Position variants — Desktop */
+.scroll-text-panel.left {
+  left: 5%;
+  top: 50%;
+  transform: translateY(calc(-50% + var(--scroll-ty, 0px)));
+}
+
+.scroll-text-panel.right {
+  right: 5%;
+  top: 50%;
+  transform: translateY(calc(-50% + var(--scroll-ty, 0px)));
+  text-align: right;
+  align-items: flex-end;
+}
+
+.scroll-text-panel.top {
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%) translateY(var(--scroll-ty, 0px));
+  text-align: center;
+  align-items: center;
+}
+
+.scroll-text-panel.center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% + var(--scroll-ty, 0px)));
+  text-align: center;
+  align-items: center;
+}
+
+.scroll-text-panel.bottom {
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%) translateY(var(--scroll-ty, 0px));
+  text-align: center;
+  align-items: center;
+}
+
+/* Mobile overrides — panels always centered */
+@media (max-width: 767px) {
+  .scroll-text-panel {
+    max-width: 90vw;
+    padding: 1rem;
+  }
+
+  .scroll-text-panel.left,
+  .scroll-text-panel.right {
+    left: 50%;
+    right: auto;
+    text-align: center;
+    align-items: center;
+    transform: translateX(-50%) translateY(calc(-50% + var(--scroll-ty, 0px)));
+  }
+}
+
+.scroll-panel-label {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.scroll-panel-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(1.8rem, 5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+}
+
+.scroll-panel-sub {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 320px;
+}
+
+/* ============================================================
+   Loading Screen
+   ============================================================ */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  background: #000;
+  transition: opacity 0.6s ease-out;
+}
+
+.loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-progress-bar {
+  width: 120px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.loading-progress-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 1px;
+  transition: width 0.3s ease-out;
+}
