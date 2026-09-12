@@ -524,7 +524,8 @@ body {
 .scroll-text-panel {
   position: absolute;
   text-align: center;
-  transition: opacity 0.5s ease;
+  /* No CSS transition — JS sets opacity synchronously on every scroll tick.
+     A CSS transition here fights the JS and causes 500ms lag. */
   will-change: transform, opacity;
 }
 
@@ -555,6 +556,14 @@ body {
 .scroll-text-panel.top {
   left: 50%;
   top: 15vh;
+  transform: translateX(-50%) translateY(var(--scroll-ty, 0px));
+  text-align: center;
+  white-space: nowrap;
+}
+
+.scroll-text-panel.bottom {
+  left: 50%;
+  bottom: 12vh;
   transform: translateX(-50%) translateY(var(--scroll-ty, 0px));
   text-align: center;
   white-space: nowrap;

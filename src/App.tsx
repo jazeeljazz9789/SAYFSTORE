@@ -34,7 +34,12 @@ const AppContent: React.FC = () => {
 
     // Respect reduced-motion preference
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) return;
+
+    // Disable Lenis on mobile/touch: native touch scrolling is already smooth,
+    // and Lenis can cause window.scrollY to lag behind the visual scroll position,
+    // which desynchronizes the ScrollStory frame animation.
+    const isMobile = window.innerWidth < 768 || ('ontouchstart' in window && window.innerWidth < 1024);
+    if (prefersReducedMotion || isMobile) return;
 
     const lenis = new Lenis({
       duration: 0.8, // Snappier response
