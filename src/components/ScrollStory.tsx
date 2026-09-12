@@ -321,32 +321,23 @@ const ScrollStory: React.FC = () => {
 
       let nearestFrame = target;
       if (!FrameCache.isLoaded(nearestFrame)) {
-        const last = lastDrawnFrameRef.current;
-        if (last >= 0) {
-          if (target > last) {
-            for (let i = target - 1; i >= last; i--) {
-              if (FrameCache.isLoaded(i)) { nearestFrame = i; break; }
-            }
-          } else if (target < last) {
-            for (let i = target + 1; i <= last; i++) {
-              if (FrameCache.isLoaded(i)) { nearestFrame = i; break; }
-            }
-          }
-          if (!FrameCache.isLoaded(nearestFrame)) {
-            nearestFrame = last;
-          }
+        let found = -1;
+        // Search outwards in both directions to find the ABSOLUTE closest loaded frame
+        for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
+          const down = target - offset;
+          const up = target + offset;
+          if (down >= 0 && FrameCache.isLoaded(down)) { found = down; break; }
+          if (up < TOTAL_FRAMES && FrameCache.isLoaded(up)) { found = up; break; }
+        }
+        if (found !== -1) {
+          nearestFrame = found;
         } else {
-          for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
-            const up = target + offset;
-            const down = target - offset;
-            if (up < TOTAL_FRAMES && FrameCache.isLoaded(up)) { nearestFrame = up; break; }
-            if (down >= 0 && FrameCache.isLoaded(down)) { nearestFrame = down; break; }
-          }
+          nearestFrame = lastDrawnFrameRef.current;
         }
       }
 
       if (nearestFrame !== lastDrawnFrameRef.current) {
-        if (FrameCache.isLoaded(nearestFrame)) {
+        if (nearestFrame >= 0 && FrameCache.isLoaded(nearestFrame)) {
           drawFrame(nearestFrame);
           lastDrawnFrameRef.current = nearestFrame;
         }
@@ -407,8 +398,12 @@ const ScrollStory: React.FC = () => {
 
     const unsubscribe = FrameCache.subscribe((loadedIdx: number) => {
       const target = targetFrameRef.current;
-      if (Math.abs(loadedIdx - target) <= 2) {
-        // Background loads use RAF so they don't block the main thread
+      const last = lastDrawnFrameRef.current;
+      const distNew = Math.abs(loadedIdx - target);
+      const distOld = Math.abs(last - target);
+      
+      // Render immediately if the newly loaded frame is closer to the target than the current frame
+      if (distNew < distOld || last === -1) {
         scheduleRender();
       }
     });

@@ -34,7 +34,7 @@ export class FrameCacheManager {
   private queue: number[] = [];
   private activeLoads = 0;
   private MAX_CONCURRENT = 4; 
-  private CACHE_WINDOW = 40; 
+  private CACHE_WINDOW = 60; 
   private lastTargetIdx = -1;
   private scrollDirection = 1;
 
@@ -95,8 +95,8 @@ export class FrameCacheManager {
     this.lastTargetIdx = targetIdx;
 
     if (typeof window !== 'undefined') {
-      // Desktop can handle all frames in memory. Mobile evicts distant frames.
-      this.CACHE_WINDOW = window.innerWidth < 768 ? 15 : TOTAL_FRAMES;
+      // Desktop can handle all frames in memory. Mobile uses a larger cache window now to prevent thrashing.
+      this.CACHE_WINDOW = window.innerWidth < 768 ? 60 : TOTAL_FRAMES;
     }
 
     if (this.CACHE_WINDOW < TOTAL_FRAMES) {
@@ -172,8 +172,41 @@ export class FrameCacheManager {
   }
 
   private processQueue() {
-    // If actively scrolling, only allow 1 concurrent load to reserve CPU/Network for the main thread
-    const allowedConcurrent = this.isScrolling ? 1 : this.MAX_CONCURRENT;
+    // Allow 3 concurrent loads while scrolling to prevent starvation, 4 otherwise
+    const allowedConcurrent = this.isScrolling ? 3 : this.MAX_CONCURRENT;
+    
+    // PREEMPTION: Abort distant loading frames if we have high-priority frames waiting
+    if (this.queue.length > 0) {
+      const highestPriority = this.queue[0];
+      
+      while (this.activeLoads >= allowedConcurrent) {
+        let furthestLoading = -1;
+        let maxDist = -1;
+        
+        for (let i = 0; i < TOTAL_FRAMES; i++) {
+          if (this.states[i] === "loading") {
+            const dist = Math.abs(i - this.lastTargetIdx);
+            if (dist > maxDist) {
+              maxDist = dist;
+              furthestLoading = i;
+            }
+          }
+        }
+        
+        // If the furthest loading frame is further than our highest priority queued frame, abort it
+        if (furthestLoading !== -1 && maxDist > Math.abs(highestPriority - this.lastTargetIdx)) {
+          if (this.frames[furthestLoading]) {
+            this.frames[furthestLoading]!.src = ""; // Aborts the fetch/decode
+          }
+          this.frames[furthestLoading] = null;
+          this.states[furthestLoading] = "unloaded";
+          this.activeLoads = Math.max(0, this.activeLoads - 1);
+        } else {
+          break; // The currently loading frames are higher or equal priority
+        }
+      }
+    }
+
     if (this.activeLoads >= allowedConcurrent || this.queue.length === 0) return;
 
     while (this.activeLoads < allowedConcurrent && this.queue.length > 0) {
