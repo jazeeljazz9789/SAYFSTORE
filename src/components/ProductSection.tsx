@@ -12,7 +12,7 @@ const TRUST = [
   "Secure Checkout",
   "Fast Delivery",
   "Premium Packaging",
-  "Easy Returns",
+  "Premium Quality",
 ];
 
 const productImages = [
