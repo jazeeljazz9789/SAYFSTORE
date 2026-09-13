@@ -1,5 +1,5 @@
 import React from "react";
-import SAYFLogo from "./SAYFLogo";
+import SplashLogo from "./SplashLogo";
 
 interface FooterProps { }
 
@@ -22,7 +22,7 @@ const Footer: React.FC<FooterProps> = () => {
         <div className="row g-4 row-cols-1 row-cols-sm-2 row-cols-lg-4">
           {/* Brand */}
           <div className="col footer-brand">
-            <SAYFLogo width={110} />
+            <SplashLogo width={110} />
             <p className="footer-tagline mt-2">Craft Your Presence.</p>
             <div className="footer-contact mt-3" style={{ color: 'var(--silver-dim)', fontSize: '12px', lineHeight: '1.8' }}>
               <strong style={{ color: 'var(--silver)', letterSpacing: '0.1em' }}>MARKETED BY:</strong><br />

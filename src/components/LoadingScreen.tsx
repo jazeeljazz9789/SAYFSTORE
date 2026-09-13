@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import SAYFLogo from "./SAYFLogo";
+import SplashLogo from "./SplashLogo";
 import { FrameCache } from "../utils/FrameCache";
 
 interface LoadingScreenProps {
@@ -46,7 +46,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onDone }) => {
 
   return (
     <div className={`loading-screen${hidden ? " hidden" : ""}`} role="status" aria-label="Loading SAYF">
-      <SAYFLogo width={140} />
+      <SplashLogo width={140} />
 
       <div className="loading-progress-bar">
         <div

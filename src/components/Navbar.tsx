@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SAYFLogo from "./SAYFLogo";
+import SplashLogo from "./SplashLogo";
 
 interface NavbarProps {}
 
@@ -50,7 +50,7 @@ const Navbar: React.FC<NavbarProps> = () => {
           style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
           aria-label="Go to top"
         >
-          <SAYFLogo width={80} />
+          <SplashLogo width={80} />
         </button>
       </div>
 
