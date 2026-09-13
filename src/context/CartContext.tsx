@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react/only-export-components */
 import React, { createContext, useContext, useState, useCallback } from "react";
 import product from "../data/products";
 

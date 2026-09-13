@@ -14,12 +14,12 @@ export const product = {
   tagline: "Craft Your Presence.",
   description:
     "SAYF Beard Oil is a premium blend of natural oils that nourishes your beard, hydrates the skin beneath the beard, reduces itchiness, and promotes healthy beard growth. Lightweight, non-greasy, and fast-absorbing.",
-  basePrice: 650, // ← Edit price here (INR)
+  basePrice: 599, // ← Edit price here (INR)
   volume: "30 mL e / 1.01 fl oz",
   quantityOptions: [
-    { qty: 1, label: "1 Bottle", price: 650 },
-    { qty: 2, label: "2 Bottles", price: 1300 },
-    { qty: 3, label: "3 Bottles", price: 1950 },
+    { qty: 1, label: "1 Bottle", price: 599 },
+    { qty: 2, label: "2 Bottles", price: 1198 },
+    { qty: 3, label: "3 Bottles", price: 1797 },
   ],
 };
 
