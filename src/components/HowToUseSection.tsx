@@ -19,7 +19,7 @@ const HowToUseSection: React.FC = () => (
       {[
         { label: '100%\nNATURAL', icon: '🌿' },
         { label: 'PARABEN\nFREE', icon: '🧪' },
-        { label: 'MINERAL OIL oil\nFREE', icon: '🚫💧' },
+        { label: 'MINERAL OIL oil\nFREE', icon: '🚫' },
         { label: 'SILICONE\nFREE', icon: '💧' },
       ].map((claim, i) => (
         <div key={i} className="d-flex flex-column align-items-center gap-2">

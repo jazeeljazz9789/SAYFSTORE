@@ -27,7 +27,7 @@ const HeroSection: React.FC = () => {
         <p className="hero-eyebrow">Premium Beard Oil</p>
 
         <h1 className="hero-headline">SAYF</h1>
-        <p className="hero-sub">Store.In</p>
+        <p className="hero-sub">Store</p>
 
         <p className="hero-tagline">Craft Your Presence.</p>
 

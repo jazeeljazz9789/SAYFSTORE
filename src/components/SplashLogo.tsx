@@ -18,7 +18,7 @@ const SplashLogo: React.FC<SplashLogoProps> = ({ width = 100, className = "" }) 
         width={width}
         height={height}
         xmlns="http://www.w3.org/2000/svg"
-        aria-label="SAYF .CO"
+        aria-label="SAYF"
         style={{ overflow: 'visible' }}
       >
         <defs>
@@ -48,19 +48,6 @@ const SplashLogo: React.FC<SplashLogoProps> = ({ width = 100, className = "" }) 
         {/* Left decorative line */}
         <line x1="30" y1="88" x2="75" y2="88" stroke={`url(#${id})`} strokeWidth="0.8" />
 
-        {/* . C O */}
-        <text
-          x="100"
-          y="95"
-          textAnchor="middle"
-          fontFamily="'Montserrat', sans-serif"
-          fontSize="16"
-          fontWeight="300"
-          letterSpacing="8"
-          fill={`url(#${id})`}
-        >
-          .CO
-        </text>
 
         {/* Right decorative line */}
         <line x1="125" y1="88" x2="170" y2="88" stroke={`url(#${id})`} strokeWidth="0.8" />
