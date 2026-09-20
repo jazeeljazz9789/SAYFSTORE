@@ -8,6 +8,9 @@ export interface OrderRequest {
   name: string;
   phone: string;
   address: string;
+  city: string;
+  state: string;
+  pincode: string;
   paymentMethod: "cod" | "upi";
   items: { id: string; qty: number }[];
 }

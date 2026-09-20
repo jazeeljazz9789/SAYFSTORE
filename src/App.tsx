@@ -124,7 +124,7 @@ const AppContent: React.FC = () => {
         <CartDrawer />
       </div>
 
-      <CheckoutModal isOpen={isCheckoutOpen} onClose={closeCheckout} />
+      <CheckoutModal isOpen={isCheckoutOpen} onClose={(full) => closeCheckout(full)} />
     </>
   );
 };

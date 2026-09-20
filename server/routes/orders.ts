@@ -93,32 +93,54 @@ function calculateAuthoritativePrice(
 // POST /api/orders - Create new customer order securely
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { name, phone, address, paymentMethod, items } = req.body;
+    const { name, phone, address, city, state, pincode, paymentMethod, items } = req.body;
 
     // 1. Validate Customer Name
     const cleanName = typeof name === "string" ? name.trim() : "";
-    if (!cleanName || cleanName.length < 2 || cleanName.length > 100) {
+    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(cleanName)) {
       return res.status(400).json({
-        error: "Invalid customer name. Please provide your full name (2-100 characters).",
+        error: "Please enter a valid name using alphabets and single spaces only.",
       });
     }
 
     // 2. Validate Customer Phone
     const cleanPhone = typeof phone === "string" ? phone.trim() : "";
-    const phoneRegex = /^[0-9+\s\-()]{7,15}$/;
-    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
+    if (!/^[0-9]{10}$/.test(cleanPhone)) {
       return res.status(400).json({
-        error: "Invalid phone number. Please enter a valid contact phone number.",
+        error: "Please enter a valid 10-digit phone number.",
       });
     }
 
-    // 3. Validate Delivery Address
+    // 3. Validate Delivery Address Components
     const cleanAddress = typeof address === "string" ? address.trim() : "";
-    if (!cleanAddress || cleanAddress.length < 5 || cleanAddress.length > 500) {
+    if (!cleanAddress || cleanAddress.length < 5) {
       return res.status(400).json({
-        error: "Invalid delivery address. Please enter a complete street address.",
+        error: "Please enter your complete delivery address.",
       });
     }
+
+    const cleanCity = typeof city === "string" ? city.trim() : "";
+    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(cleanCity)) {
+      return res.status(400).json({
+        error: "Please enter a valid city using alphabets and single spaces only.",
+      });
+    }
+
+    const cleanState = typeof state === "string" ? state.trim() : "";
+    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(cleanState)) {
+      return res.status(400).json({
+        error: "Please enter a valid state using alphabets and single spaces only.",
+      });
+    }
+
+    const cleanPincode = typeof pincode === "string" ? pincode.trim() : "";
+    if (!/^[0-9]{6}$/.test(cleanPincode)) {
+      return res.status(400).json({
+        error: "Please enter a valid 6-digit PIN code.",
+      });
+    }
+
+    const fullAddress = `${cleanAddress}, ${cleanCity}, ${cleanState} ${cleanPincode}`;
 
     // 4. Validate Payment Method
     if (paymentMethod !== "upi" && paymentMethod !== "cod") {
@@ -188,7 +210,7 @@ router.post("/", async (req: Request, res: Response) => {
       orderId,
       customerName: cleanName,
       phone: cleanPhone,
-      address: cleanAddress,
+      address: fullAddress,
       paymentMethod: validPayment,
       totalAmount: serverTotalAmount,
       items: verifiedItems,

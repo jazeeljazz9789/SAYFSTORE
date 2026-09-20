@@ -25,17 +25,13 @@ const CartDrawer: React.FC<CartDrawerProps> = () => {
       >
         {/* Header */}
         <div className="cart-header">
-          <span className="cart-title">Your Cart</span>
-          <button
-            className="btn-primary cart-checkout-btn"
-            onClick={() => {
-              openCheckout();
-              closeCart();
-            }}
-            id="cart-checkout-btn"
-          >
-            Checkout
+          <button className="mobile-back-btn cart-back-btn" onClick={closeCart} aria-label="Close cart" type="button">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+               <polyline points="15 18 9 12 15 6"></polyline>
+             </svg>
+             <span>Back</span>
           </button>
+          <span className="cart-title">Your Cart</span>
         </div>
 
         {/* Body */}

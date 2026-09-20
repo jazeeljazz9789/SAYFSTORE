@@ -1212,7 +1212,7 @@ body {
 .cart-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 24px 28px;
   border-bottom: 1px solid var(--border);
 }
@@ -1235,6 +1235,10 @@ body {
   line-height: 1;
   padding: 4px;
   transition: color 0.2s ease;
+}
+
+.mobile-back-btn {
+  display: none;
 }
 
 .cart-close:hover { color: var(--white); }
@@ -1658,6 +1662,29 @@ body {
   .hero-headline { letter-spacing: 0.06em; }
 
   .cart-drawer { width: 100%; }
+
+  .cart-header {
+    justify-content: space-between;
+  }
+
+  .mobile-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--silver-light);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .checkout-back-btn {
+    margin-bottom: 24px;
+  }
 
   .modal { padding: 32px 24px; }
   .payment-options { grid-template-columns: 1fr; }

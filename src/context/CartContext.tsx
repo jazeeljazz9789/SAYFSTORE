@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable react/only-export-components */
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import product from "../data/products";
 
 export interface CartItem {
@@ -30,7 +30,7 @@ interface CartContextValue {
   totalItems: number;
   isCheckoutOpen: boolean;
   openCheckout: () => void;
-  closeCheckout: () => void;
+  closeCheckout: (fullyClose?: boolean) => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -42,11 +42,61 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
-  const openCart = useCallback(() => setIsOpen(true), []);
-  const closeCart = useCallback(() => setIsOpen(false), []);
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state;
+      if (state?.modal === "checkout") {
+        setIsCheckoutOpen(true);
+        setIsOpen(false);
+      } else if (state?.modal === "cart") {
+        setIsOpen(true);
+        setIsCheckoutOpen(false);
+      } else {
+        setIsOpen(false);
+        setIsCheckoutOpen(false);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
-  const openCheckout = useCallback(() => setIsCheckoutOpen(true), []);
-  const closeCheckout = useCallback(() => setIsCheckoutOpen(false), []);
+  const openCart = useCallback(() => {
+    setIsOpen(true);
+    if (window.history.state?.modal !== "cart") {
+      window.history.pushState({ modal: "cart" }, "");
+    }
+  }, []);
+
+  const closeCart = useCallback(() => {
+    setIsOpen(false);
+    if (window.history.state?.modal === "cart") {
+      window.history.back();
+    }
+  }, []);
+
+  const openCheckout = useCallback(() => {
+    setIsCheckoutOpen(true);
+    setIsOpen(false);
+    if (window.history.state?.modal !== "checkout") {
+      window.history.pushState({ modal: "checkout" }, "");
+    }
+  }, []);
+
+  const closeCheckout = useCallback((fullyClose?: boolean) => {
+    setIsCheckoutOpen(false);
+    if (fullyClose) {
+      setIsOpen(false);
+      if (window.history.state?.modal === "checkout") {
+        window.history.go(-2);
+      } else if (window.history.state?.modal === "cart") {
+        window.history.back();
+      }
+    } else {
+      if (window.history.state?.modal === "checkout") {
+        window.history.back();
+      }
+    }
+  }, []);
 
   const addToCart = useCallback((qty: number) => {
     setRawItems((prev) => {
@@ -66,6 +116,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       ];
     });
     setIsOpen(true);
+    if (window.history.state?.modal !== "cart") {
+      window.history.pushState({ modal: "cart" }, "");
+    }
   }, []);
 
   const updateQty = useCallback((id: string, qty: number) => {

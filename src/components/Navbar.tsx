@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SplashLogo from "./SplashLogo";
 
 interface NavbarProps {}
@@ -21,6 +21,30 @@ const MenuIcon: React.FC = () => (
 
 const Navbar: React.FC<NavbarProps> = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (menuOpen) {
+        setMenuOpen(false);
+      }
+    };
+
+    // Listen to native browser scroll (mobile + desktop)
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    
+    // Also hook into Lenis directly to be safe, as requested
+    const lenis = (window as any).lenis;
+    if (lenis) {
+      lenis.on("scroll", handleScroll);
+    }
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (lenis) {
+        lenis.off("scroll", handleScroll);
+      }
+    };
+  }, [menuOpen]);
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);

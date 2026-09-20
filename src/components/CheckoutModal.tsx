@@ -5,7 +5,7 @@ import "./CheckoutModal.css";
 
 interface CheckoutModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (fullClose?: boolean) => void;
 }
 
 type ModalState = "form" | "submitting" | "error";
@@ -100,15 +100,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     const trimmedPin = pincode.trim();
     const trimmedState = stateName.trim();
 
-    if (trimmedName.length < 2) {
-      setErrorMessage("Please enter your full name (at least 2 characters).");
+    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(trimmedName)) {
+      setErrorMessage("Please enter a valid name using alphabets and single spaces only.");
       setModalState("error");
       return;
     }
 
-    const phoneDigits = trimmedPhone.replace(/[^0-9]/g, "");
-    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
-      setErrorMessage("Please enter a valid phone number.");
+    if (!/^[0-9]{10}$/.test(trimmedPhone)) {
+      setErrorMessage("Please enter a valid 10-digit phone number.");
       setModalState("error");
       return;
     }
@@ -119,20 +118,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (trimmedCity.length < 2) {
-      setErrorMessage("Please enter your city.");
+    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(trimmedCity)) {
+      setErrorMessage("Please enter a valid city using alphabets and single spaces only.");
       setModalState("error");
       return;
     }
 
-    if (!/^\d{6}$/.test(trimmedPin)) {
+    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(trimmedState)) {
+      setErrorMessage("Please enter a valid state using alphabets and single spaces only.");
+      setModalState("error");
+      return;
+    }
+
+    if (!/^[0-9]{6}$/.test(trimmedPin)) {
       setErrorMessage("Please enter a valid 6-digit PIN code.");
-      setModalState("error");
-      return;
-    }
-
-    if (trimmedState.length < 2) {
-      setErrorMessage("Please enter your state.");
       setModalState("error");
       return;
     }
@@ -148,12 +147,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     setErrorMessage("");
 
     try {
-      const fullAddress = `${trimmedAddress}, ${trimmedCity}, ${trimmedState} ${trimmedPin}`;
-      
       const response = await api.createOrder({
         name: trimmedName,
         phone: trimmedPhone,
-        address: fullAddress,
+        address: trimmedAddress,
+        city: trimmedCity,
+        state: trimmedState,
+        pincode: trimmedPin,
         paymentMethod: "cod",
         items: items.map((item) => ({ id: item.id, qty: item.qty })),
       }, idempotencyKey);
@@ -191,7 +191,7 @@ PIN: ${trimmedPin}`;
       setCity("");
       setPincode("");
       setStateName("");
-      onClose(); // Navigate back to the shop/product page smoothly
+      onClose(true); // Navigate back to the shop/product page smoothly
 
       // 2. Open WhatsApp in a way that doesn't interrupt the current app flow
       // We use setTimeout to ensure React unmounts the modal and saves the state before the browser handles the navigation
@@ -235,6 +235,12 @@ PIN: ${trimmedPin}`;
         aria-label="Checkout"
       >
         <div className="checkout-content">
+          <button className="mobile-back-btn checkout-back-btn" onClick={() => onClose(false)} aria-label="Back to cart" type="button">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+               <polyline points="15 18 9 12 15 6"></polyline>
+             </svg>
+             <span>Back</span>
+          </button>
           <h2 className="checkout-title">Complete Order</h2>
               <p className="checkout-subtitle">SAYF PREMIUM BEARD OIL</p>
 
@@ -265,10 +271,11 @@ PIN: ${trimmedPin}`;
                   <input
                     id="checkout-phone"
                     type="tel"
+                    inputMode="numeric"
                     required
-                    maxLength={20}
+                    maxLength={10}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                     disabled={modalState === "submitting"}
                   />
                 </div>
@@ -307,7 +314,7 @@ PIN: ${trimmedPin}`;
                       required
                       maxLength={6}
                       value={pincode}
-                      onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, ""))}
+                      onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
                       disabled={modalState === "submitting"}
                     />
                   </div>
