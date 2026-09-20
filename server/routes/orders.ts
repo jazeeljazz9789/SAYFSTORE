@@ -97,7 +97,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // 1. Validate Customer Name
     const cleanName = typeof name === "string" ? name.trim() : "";
-    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(cleanName)) {
+    if (!/^[A-Za-z]+(?:\s+[A-Za-z]+)*$/.test(cleanName)) {
       return res.status(400).json({
         error: "Please enter a valid name using alphabets and single spaces only.",
       });
@@ -120,14 +120,14 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     const cleanCity = typeof city === "string" ? city.trim() : "";
-    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(cleanCity)) {
+    if (!/^[A-Za-z]+(?:\s+[A-Za-z]+)*$/.test(cleanCity)) {
       return res.status(400).json({
         error: "Please enter a valid city using alphabets and single spaces only.",
       });
     }
 
     const cleanState = typeof state === "string" ? state.trim() : "";
-    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(cleanState)) {
+    if (!/^[A-Za-z]+(?:\s+[A-Za-z]+)*$/.test(cleanState)) {
       return res.status(400).json({
         error: "Please enter a valid state using alphabets and single spaces only.",
       });

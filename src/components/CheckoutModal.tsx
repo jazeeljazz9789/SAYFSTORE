@@ -26,6 +26,9 @@ const generateIdempotencyKey = (): string => {
 
   return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 };
+
+const sanitizeLettersOnly = (value: string) => value.replace(/[^A-Za-z\s]/g, "");
+
 const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -100,7 +103,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     const trimmedPin = pincode.trim();
     const trimmedState = stateName.trim();
 
-    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(trimmedName)) {
+    if (!/^[A-Za-z]+(?:\s+[A-Za-z]+)*$/.test(trimmedName)) {
       setErrorMessage("Please enter a valid name using alphabets and single spaces only.");
       setModalState("error");
       return;
@@ -118,13 +121,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(trimmedCity)) {
+    if (!/^[A-Za-z]+(?:\s+[A-Za-z]+)*$/.test(trimmedCity)) {
       setErrorMessage("Please enter a valid city using alphabets and single spaces only.");
       setModalState("error");
       return;
     }
 
-    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(trimmedState)) {
+    if (!/^[A-Za-z]+(?:\s+[A-Za-z]+)*$/.test(trimmedState)) {
       setErrorMessage("Please enter a valid state using alphabets and single spaces only.");
       setModalState("error");
       return;
@@ -261,7 +264,7 @@ PIN: ${trimmedPin}`;
                     required
                     maxLength={100}
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => setName(sanitizeLettersOnly(e.target.value))}
                     disabled={modalState === "submitting"}
                   />
                 </div>
@@ -301,7 +304,7 @@ PIN: ${trimmedPin}`;
                       required
                       maxLength={100}
                       value={city}
-                      onChange={(e) => setCity(e.target.value)}
+                      onChange={(e) => setCity(sanitizeLettersOnly(e.target.value))}
                       disabled={modalState === "submitting"}
                     />
                   </div>
@@ -326,7 +329,7 @@ PIN: ${trimmedPin}`;
                       required
                       maxLength={100}
                       value={stateName}
-                      onChange={(e) => setStateName(e.target.value)}
+                      onChange={(e) => setStateName(sanitizeLettersOnly(e.target.value))}
                       disabled={modalState === "submitting"}
                     />
                   </div>

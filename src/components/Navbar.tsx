@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SplashLogo from "./SplashLogo";
 
 interface NavbarProps {}
@@ -21,28 +21,22 @@ const MenuIcon: React.FC = () => (
 
 const Navbar: React.FC<NavbarProps> = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navbarRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (menuOpen) {
+    if (!menuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (navbarRef.current && !navbarRef.current.contains(target)) {
         setMenuOpen(false);
       }
     };
 
-    // Listen to native browser scroll (mobile + desktop)
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    
-    // Also hook into Lenis directly to be safe, as requested
-    const lenis = (window as any).lenis;
-    if (lenis) {
-      lenis.on("scroll", handleScroll);
-    }
+    document.addEventListener("pointerdown", handlePointerDown);
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (lenis) {
-        lenis.off("scroll", handleScroll);
-      }
+      document.removeEventListener("pointerdown", handlePointerDown);
     };
   }, [menuOpen]);
 
@@ -59,7 +53,7 @@ const Navbar: React.FC<NavbarProps> = () => {
   };
 
   return (
-    <nav className="navbar position-fixed top-0 start-0 end-0 px-3 px-md-5 d-flex align-items-center justify-content-between" role="navigation" aria-label="Main navigation" style={{ background: "transparent" }}>
+    <nav ref={navbarRef} className="navbar position-fixed top-0 start-0 end-0 px-3 px-md-5 d-flex align-items-center justify-content-between" role="navigation" aria-label="Main navigation" style={{ background: "transparent" }}>
       {/* Logo */}
       <div className="navbar-logo flex-shrink-0">
         <button
