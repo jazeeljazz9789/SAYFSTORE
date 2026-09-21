@@ -342,8 +342,6 @@ const ScrollStory: React.FC = () => {
           lastDrawnFrameRef.current = nearestFrame;
         }
       }
-
-      ticking = false;
     };
 
     // Combined update: panels use CONTINUOUS scroll progress, canvas uses frame index
@@ -356,7 +354,11 @@ const ScrollStory: React.FC = () => {
       if (!ticking) {
         ticking = true;
         animFrameRef.current = requestAnimationFrame(() => {
-          renderFrame();
+          try {
+            renderFrame();
+          } finally {
+            ticking = false;
+          }
         });
       }
     };
@@ -367,7 +369,7 @@ const ScrollStory: React.FC = () => {
         updateLayoutCache();
       }
 
-      const { sectionTop, sectionH } = layoutCache.current;
+      const { sectionTop, sectionH, isPortrait } = layoutCache.current;
       if (sectionH <= 0) return;
 
       const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -386,9 +388,22 @@ const ScrollStory: React.FC = () => {
         FrameCache.prioritize(target);
       }
 
-      // Execute synchronously! iOS Safari throttles requestAnimationFrame during native touch scrolls.
-      // Synchronous execution in the passive scroll event is the ONLY way to track the finger 1:1.
-      updateCanvasAndPanels();
+      if (isPortrait) {
+        // MOBILE ONLY: Schedule execution! Synchronous canvas drawing in scroll handlers overwhelms Safari's memory/GPU queue
+        if (!ticking) {
+          ticking = true;
+          animFrameRef.current = requestAnimationFrame(() => {
+            try {
+              updateCanvasAndPanels();
+            } finally {
+              ticking = false;
+            }
+          });
+        }
+      } else {
+        // DESKTOP ONLY: Execute synchronously! Lenis smooth scroll translates to window.scrollTo, tracking 1:1.
+        updateCanvasAndPanels();
+      }
     };
 
     // Use native passive scroll listener universally.
