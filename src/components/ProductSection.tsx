@@ -135,7 +135,7 @@ const ProductSection: React.FC = () => {
 
             {/* Price */}
             <div className="product-price-display d-flex align-items-baseline gap-2 mb-4">
-              <span className="text-muted text-decoration-line-through fs-5">
+              <span className="text-decoration-line-through fs-5" style={{ color: "#a0a0a0" }}>
                 ₹{(selected.qty * 799).toLocaleString("en-IN")}
               </span>
               <span className="product-currency ms-2">₹</span>
