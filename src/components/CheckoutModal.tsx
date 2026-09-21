@@ -27,7 +27,7 @@ const generateIdempotencyKey = (): string => {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 };
 
-const sanitizeLettersOnly = (value: string) => value.replace(/[^A-Za-z\s]/g, "");
+const sanitizeLettersOnly = (value: string) => value.replace(/[^A-Za-z\s]/g, "").toUpperCase();
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState("");
